@@ -1,4 +1,5 @@
 import authRoutes from './routes/authRoutes.js';
+import conversationRoutes from './routes/conversationRoutes.js';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -27,6 +28,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'WorkSpace API is running!' });
 });
 app.use('/api/auth', authRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // Connect DB then start server
 const PORT = process.env.PORT || 5000;
