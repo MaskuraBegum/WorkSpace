@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { CheckSquare, FileText } from 'lucide-react';
+import TaskPanel from '../tasks/TaskPanel';
+import NotePanel from '../notes/NotePanel';
+import useChatStore from '../../store/chatStore';
 
 export default function WorkspacePanel() {
   const [tab, setTab] = useState('tasks');
+  const { activeConversation } = useChatStore();
 
   return (
     <div className="w-80 bg-slate-800 border-l border-slate-700 flex flex-col flex-shrink-0">
@@ -32,12 +36,11 @@ export default function WorkspacePanel() {
         </button>
       </div>
 
-      <div className="flex-1 p-4">
-        {tab === 'tasks' ? (
-          <p className="text-slate-500 text-sm text-center mt-8">Tasks coming soon!</p>
-        ) : (
-          <p className="text-slate-500 text-sm text-center mt-8">Notes coming soon!</p>
-        )}
+      <div className="flex-1 overflow-hidden">
+        {tab === 'tasks'
+          ? <TaskPanel conversationId={activeConversation?._id} />
+          : <NotePanel conversationId={activeConversation?._id} />
+        }
       </div>
     </div>
   );
