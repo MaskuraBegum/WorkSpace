@@ -68,7 +68,7 @@ export default function ChatWindow() {
       });
     }, 1500);
   };
-
+  
   const handleSend = () => {
     if (!input.trim()) return;
     const socket = getSocket();

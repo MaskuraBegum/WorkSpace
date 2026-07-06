@@ -53,10 +53,12 @@ export default function ChatPage() {
     });
 
     socket.on('typing:start', ({ userId, userName, conversationId }) => {
+      console.log('Typing start:', { userId, userName, conversationId });
       setTyping(conversationId, userId, userName, true);
     });
-
+    
     socket.on('typing:stop', ({ userId, conversationId }) => {
+      console.log('Typing stop:', { userId, conversationId });
       setTyping(conversationId, userId, null, false);
     });
 
