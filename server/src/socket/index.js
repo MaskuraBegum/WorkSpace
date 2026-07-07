@@ -23,24 +23,30 @@ const initSocket = (io) => {
     // Join a conversation room
     socket.on('conversation:join', (conversationId) => {
       socket.join(conversationId);
+      console.log(`✅ Socket ${socket.id} joined room ${conversationId}`);
     });
 
     // Leave a conversation room
     socket.on('conversation:leave', (conversationId) => {
       socket.leave(conversationId);
+      console.log(`❌ Socket ${socket.id} left room ${conversationId}`);
     });
 
     // Send a message in real-time
     socket.on('message:send', async (data) => {
       try {
         const { conversationId, content, replyToId, senderId } = data;
+        console.log('📨 Message received:', { conversationId, senderId, content });
 
         const conversation = await Conversation.findOne({
           _id: conversationId,
           members: senderId
         });
 
-        if (!conversation) return;
+        if (!conversation) {
+          console.log('❌ Conversation not found or user not member');
+          return;
+        }
 
         const message = await Message.create({
           conversation: conversationId,
@@ -53,7 +59,6 @@ const initSocket = (io) => {
           lastMessage: message._id
         });
 
-        // Invalidate conversation cache for all members
         await Promise.all(
           conversation.members.map(id => redis.del(`conversations:${id}`))
         );
@@ -63,9 +68,12 @@ const initSocket = (io) => {
           { path: 'replyTo' }
         ]);
 
-        io.to(conversationId).emit('message:received', populated);
+        const sockets = await io.in(conversationId).fetchSockets();
+        console.log(`🏠 Room ${conversationId} has ${sockets.length} sockets`);
 
-        // Notify other members
+        io.to(conversationId).emit('message:received', populated);
+        console.log('✅ Emitted message:received to room');
+
         conversation.members.forEach(async (memberId) => {
           if (memberId.toString() !== senderId) {
             const memberSocketId = await redis.get(`online:${memberId}`);
@@ -85,11 +93,13 @@ const initSocket = (io) => {
 
     // Typing indicators
     socket.on('typing:start', ({ conversationId, userId, userName }) => {
-      socket.to(conversationId).emit('typing:start', { userId, userName });
+      console.log('Typing start from:', userId, 'in room:', conversationId);
+      socket.to(conversationId).emit('typing:start', { userId, userName, conversationId });
     });
 
     socket.on('typing:stop', ({ conversationId, userId }) => {
-      socket.to(conversationId).emit('typing:stop', { userId });
+      console.log('Typing stop from:', userId);
+      socket.to(conversationId).emit('typing:stop', { userId, conversationId });
     });
 
     // Mark messages as read
@@ -115,8 +125,18 @@ const initSocket = (io) => {
     });
 
     // Real-time task update
-    socket.on('task:update', ({ conversationId, task }) => {
-      socket.to(conversationId).emit('task:updated', { conversationId, task });
+    socket.on('task:update', ({ conversationId, task, isNew }) => {
+      socket.to(conversationId).emit('task:updated', { conversationId, task, isNew });
+    });
+
+    // Link saved in notes
+    socket.on('note:link_add', ({ conversationId, link }) => {
+      socket.to(conversationId).emit('note:link_added', { link });
+    });
+
+    // Link removed from notes
+    socket.on('note:link_remove', ({ conversationId, linkId }) => {
+      socket.to(conversationId).emit('note:link_removed', { linkId });
     });
 
     // Disconnect

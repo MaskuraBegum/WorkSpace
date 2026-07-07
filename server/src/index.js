@@ -1,5 +1,4 @@
 import express from 'express';
-import initSocket from './socket/index.js';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
@@ -16,6 +15,8 @@ import conversationRoutes from './routes/conversationRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
 import noteRoutes from './routes/noteRoutes.js';
+import initSocket from './socket/index.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 dotenv.config();
 
@@ -24,16 +25,22 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ['GET', 'POST']
-  }
+    origin: "*",
+    methods: ['GET', 'POST'],
+    credentials: false
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 // Security + performance middleware
 app.use(helmet());
 app.use(compression());
 app.use(morgan('dev'));
-app.use(cors({ origin: process.env.CLIENT_URL }));
+app.use(cors({
+  origin: "*",
+  credentials: false
+}));
 app.use(express.json());
 
 // Rate limiting
@@ -60,6 +67,7 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/notes', noteRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
@@ -68,6 +76,7 @@ const start = async () => {
   await connectDB();
   await redis.connect();
   await createIndexes();
+  initSocket(io);
   httpServer.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
   });

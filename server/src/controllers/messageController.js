@@ -1,5 +1,6 @@
 import Message from '../models/Message.js';
 import Conversation from '../models/Conversation.js';
+import Task from '../models/Task.js';
 
 // Get messages for a conversation
 export const getMessages = async (req, res) => {
@@ -9,10 +10,9 @@ export const getMessages = async (req, res) => {
     const limit = 20;
     const skip = (page - 1) * limit;
 
-    // Check user is member of conversation
     const conversation = await Conversation.findOne({
       _id: conversationId,
-      members: req.user._id
+      members: { $in: [req.user._id] }
     });
 
     if (!conversation) {
@@ -27,7 +27,6 @@ export const getMessages = async (req, res) => {
       .limit(limit)
       .lean();
 
-    // Return in ascending order for display
     res.json(messages.reverse());
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -43,10 +42,9 @@ export const sendMessage = async (req, res) => {
       return res.status(400).json({ message: 'Message content is required' });
     }
 
-    // Check user is member
     const conversation = await Conversation.findOne({
       _id: conversationId,
-      members: req.user._id
+      members: { $in: [req.user._id] }
     });
 
     if (!conversation) {
@@ -60,7 +58,6 @@ export const sendMessage = async (req, res) => {
       replyTo: replyToId || null
     });
 
-    // Update last message on conversation
     await Conversation.findByIdAndUpdate(conversationId, {
       lastMessage: message._id
     });
@@ -96,39 +93,51 @@ export const markAsRead = async (req, res) => {
   }
 };
 
-// Convert message to task (unique feature!)
+// Convert message to task
 export const convertToTask = async (req, res) => {
   try {
     const { messageId } = req.params;
     const { assignedToId, dueDate } = req.body;
 
-    const message = await Message.findById(messageId);
+    const message = await Message.findById(messageId).populate('conversation');
     if (!message) {
       return res.status(404).json({ message: 'Message not found' });
     }
 
-    // Check user is member of conversation
     const conversation = await Conversation.findOne({
-      _id: message.conversation,
-      members: req.user._id
+      _id: message.conversation._id,
+      members: { $in: [req.user._id] }
     });
 
     if (!conversation) {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const { default: Task } = await import('../models/Task.js');
+    // Check if THIS user already converted this message
+    const existing = await Task.findOne({
+      fromMessage: messageId,
+      createdBy: req.user._id
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: 'You already converted this message to a task' });
+    }
 
     const task = await Task.create({
       title: message.content,
-      conversation: message.conversation,
+      conversation: message.conversation._id,
       createdBy: req.user._id,
       assignedTo: assignedToId || null,
       dueDate: dueDate || null,
       fromMessage: messageId
     });
 
-    res.status(201).json(task);
+    const populated = await task.populate([
+      { path: 'assignedTo', select: 'name avatarUrl' },
+      { path: 'createdBy', select: 'name avatarUrl' }
+    ]);
+
+    res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

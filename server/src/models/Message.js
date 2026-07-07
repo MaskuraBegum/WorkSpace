@@ -13,7 +13,7 @@ const messageSchema = new mongoose.Schema({
   },
   content: {
     type: String,
-    required: true
+    default: ''
   },
   isRead: {
     type: Boolean,
@@ -23,6 +23,12 @@ const messageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Message',
     default: null
+  },
+  file: {
+    url: String,
+    name: String,
+    type: String,
+    size: Number
   }
 }, { timestamps: true });
 
