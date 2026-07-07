@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Send, CornerUpLeft, X } from 'lucide-react';
+import { Send, CornerUpLeft, X, CheckSquare } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useChatStore from '../../store/chatStore';
 import { getSocket } from '../../services/socket';
@@ -13,7 +13,7 @@ export default function ChatWindow() {
   const [replyTo, setReplyTo] = useState(null);
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
-  const { activeConversation, messages, setMessages, typingUsers, addMessage } = useChatStore();
+  const { activeConversation, messages, setMessages, typingUsers, addMessage, addTask } = useChatStore(); 
 
   const other = activeConversation?.members?.find(m => m._id !== user._id);
   const name = activeConversation?.isGroup ? activeConversation.name : other?.name;
@@ -23,11 +23,10 @@ export default function ChatWindow() {
   useEffect(() => {
     if (!activeConversation) return;
     const socket = getSocket();
-  
-    // Join room first
+
     socket?.emit('conversation:join', activeConversation._id);
     console.log('Joining room:', activeConversation._id);
-  
+
     const load = async () => {
       try {
         const { data } = await api.get(`/messages/${activeConversation._id}`);
@@ -40,9 +39,9 @@ export default function ChatWindow() {
         toast.error('Failed to load messages');
       }
     };
-  
+
     load();
-  
+
     return () => {
       socket?.emit('conversation:leave', activeConversation._id);
     };
@@ -68,20 +67,16 @@ export default function ChatWindow() {
       });
     }, 1500);
   };
-  
+
   const handleSend = () => {
     if (!input.trim()) return;
     const socket = getSocket();
-  
+
     if (!socket?.connected) {
       toast.error('Not connected. Please refresh.');
       return;
     }
-  
-    console.log('Sending message to room:', activeConversation._id);
-    console.log('Socket connected:', socket.connected);
-    console.log('Socket id:', socket.id);
-  
+
     const tempMessage = {
       _id: Date.now().toString(),
       conversation: activeConversation._id,
@@ -91,18 +86,16 @@ export default function ChatWindow() {
       createdAt: new Date().toISOString(),
       isRead: false
     };
-  
+
     addMessage(tempMessage);
-  
+
     socket.emit('message:send', {
       conversationId: activeConversation._id,
       content: input.trim(),
       senderId: user._id,
       replyToId: replyTo?._id || null
-    }, (ack) => {
-      console.log('Message send acknowledgment:', ack);
     });
-  
+
     setInput('');
     setReplyTo(null);
   };
@@ -111,6 +104,23 @@ export default function ChatWindow() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleConvertToTask = async (message) => {
+    try {
+      const { data } = await api.post(`/messages/convert/${message._id}`, {});
+      // Add to store immediately — no reload needed
+      addTask(data);
+      toast.success('Converted to task!');
+      // Notify other user
+      getSocket()?.emit('task:update', {
+        conversationId: activeConversation._id,
+        task: data,
+        isNew: true
+      });
+    } catch {
+      toast.error('Failed to convert to task');
     }
   };
 
@@ -143,6 +153,7 @@ export default function ChatWindow() {
             message={msg}
             isOwn={msg.sender?._id === user._id}
             onReply={() => setReplyTo(msg)}
+            onConvertToTask={handleConvertToTask}
           />
         ))}
         <div ref={bottomRef} />
@@ -184,17 +195,25 @@ export default function ChatWindow() {
   );
 }
 
-function MessageBubble({ message, isOwn, onReply }) {
-  const [showReply, setShowReply] = useState(false);
+function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
+  const [showActions, setShowActions] = useState(false);
+  const [converting, setConverting] = useState(false);
+
+  const handleConvert = async () => {
+    if (converting) return;
+    setConverting(true);
+    await onConvertToTask(message);
+    setConverting(false);
+  };
 
   return (
     <div
       className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-      onMouseEnter={() => setShowReply(true)}
-      onMouseLeave={() => setShowReply(false)}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
     >
       <div className={`max-w-xs lg:max-w-md ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-        {/* Reply reference */}
+
         {message.replyTo && (
           <div className="bg-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-400 border-l-2 border-indigo-500">
             {message.replyTo.content}
@@ -208,6 +227,26 @@ function MessageBubble({ message, isOwn, onReply }) {
             </div>
           )}
 
+          {showActions && isOwn && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onReply(message)}
+                className="w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-full flex items-center justify-center transition"
+                title="Reply"
+              >
+                <CornerUpLeft size={12} className="text-slate-300" />
+              </button>
+              <button
+                onClick={handleConvert}
+                disabled={converting}
+                className="w-6 h-6 bg-slate-700 hover:bg-indigo-600 disabled:opacity-40 rounded-full flex items-center justify-center transition"
+                title="Convert to task"
+              >
+                <CheckSquare size={12} className="text-slate-300" />
+              </button>
+            </div>
+          )}
+
           <div className={`px-4 py-2 rounded-2xl text-sm ${isOwn
             ? 'bg-indigo-600 text-white rounded-br-sm'
             : 'bg-slate-700 text-slate-100 rounded-bl-sm'
@@ -215,13 +254,24 @@ function MessageBubble({ message, isOwn, onReply }) {
             {message.content}
           </div>
 
-          {showReply && (
-            <button
-              onClick={onReply}
-              className="text-slate-500 hover:text-slate-300 transition"
-            >
-              <CornerUpLeft size={14} />
-            </button>
+          {showActions && !isOwn && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onReply(message)}
+                className="w-6 h-6 bg-slate-700 hover:bg-slate-600 rounded-full flex items-center justify-center transition"
+                title="Reply"
+              >
+                <CornerUpLeft size={12} className="text-slate-300" />
+              </button>
+              <button
+                onClick={handleConvert}
+                disabled={converting}
+                className="w-6 h-6 bg-slate-700 hover:bg-indigo-600 disabled:opacity-40 rounded-full flex items-center justify-center transition"
+                title="Convert to task"
+              >
+                <CheckSquare size={12} className="text-slate-300" />
+              </button>
+            </div>
           )}
         </div>
 

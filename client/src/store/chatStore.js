@@ -6,12 +6,14 @@ const useChatStore = create((set, get) => ({
   messages: [],
   onlineUsers: [],
   typingUsers: {},
+  tasks: [],
 
   setConversations: (conversations) => set({ conversations }),
 
   setActiveConversation: (conversation) => set({
     activeConversation: conversation,
-    messages: []
+    messages: [],
+    tasks: []
   }),
 
   setMessages: (messages) => set({ messages }),
@@ -36,10 +38,24 @@ const useChatStore = create((set, get) => ({
   setTyping: (conversationId, userId, userName, isTyping) => set((state) => ({
     typingUsers: {
       ...state.typingUsers,
-      [conversationId]: isTyping
-        ? { userId, userName }
-        : null
+      [conversationId]: isTyping ? { userId, userName } : null
     }
+  })),
+
+  setTasks: (tasks) => set({ tasks }),
+
+  addTask: (task) => set((state) => {
+    const exists = state.tasks.find(t => t._id === task._id);
+    if (exists) return state;
+    return { tasks: [task, ...state.tasks] };
+  }),
+
+  updateTask: (task) => set((state) => ({
+    tasks: state.tasks.map(t => t._id === task._id ? task : t)
+  })),
+
+  removeTask: (taskId) => set((state) => ({
+    tasks: state.tasks.filter(t => t._id !== taskId)
   })),
 }));
 

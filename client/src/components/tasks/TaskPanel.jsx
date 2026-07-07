@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Plus, Check, Clock, Trash2, User, CheckSquare } from 'lucide-react';
 import api from '../../services/api';
-import useAuthStore from '../../store/authStore';
 import { getSocket } from '../../services/socket';
+import useChatStore from '../../store/chatStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
 export default function TaskPanel({ conversationId }) {
-  const { user } = useAuthStore();
-  const [tasks, setTasks] = useState([]);
+  const { tasks, setTasks, addTask, updateTask, removeTask } = useChatStore();
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ title: '', dueDate: '' });
 
   useEffect(() => {
@@ -18,8 +18,12 @@ export default function TaskPanel({ conversationId }) {
     loadTasks();
 
     const socket = getSocket();
-    socket?.on('task:updated', ({ task }) => {
-      setTasks(prev => prev.map(t => t._id === task._id ? task : t));
+    socket?.on('task:updated', ({ task, isNew }) => {
+      if (isNew) {
+        addTask(task);
+      } else {
+        updateTask(task);
+      }
     });
 
     return () => socket?.off('task:updated');
@@ -39,22 +43,29 @@ export default function TaskPanel({ conversationId }) {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.title.trim()) return;
+    if (!form.title.trim() || creating) return;
+    setCreating(true);
+    setShowForm(false);
+
     try {
       const { data } = await api.post('/tasks', {
         conversationId,
         title: form.title,
         dueDate: form.dueDate || null
       });
-      setTasks(prev => [data, ...prev]);
-      setForm({ title: '', dueDate: '' });
-      setShowForm(false);
 
-      // Notify other user via socket
-      getSocket()?.emit('task:update', { conversationId, task: data });
+      // Add to store immediately
+      addTask(data);
+      setForm({ title: '', dueDate: '' });
+
+      // Notify other user
+      getSocket()?.emit('task:update', { conversationId, task: data, isNew: true });
       toast.success('Task created!');
     } catch {
       toast.error('Failed to create task');
+      setShowForm(true);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -68,8 +79,8 @@ export default function TaskPanel({ conversationId }) {
       const { data } = await api.put(`/tasks/${task._id}`, {
         status: nextStatus[task.status]
       });
-      setTasks(prev => prev.map(t => t._id === data._id ? data : t));
-      getSocket()?.emit('task:update', { conversationId, task: data });
+      updateTask(data);
+      getSocket()?.emit('task:update', { conversationId, task: data, isNew: false });
     } catch {
       toast.error('Failed to update task');
     }
@@ -78,7 +89,7 @@ export default function TaskPanel({ conversationId }) {
   const handleDelete = async (taskId) => {
     try {
       await api.delete(`/tasks/${taskId}`);
-      setTasks(prev => prev.filter(t => t._id !== taskId));
+      removeTask(taskId);
       toast.success('Task deleted');
     } catch {
       toast.error('Failed to delete task');
@@ -99,7 +110,6 @@ export default function TaskPanel({ conversationId }) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="p-4 border-b border-slate-700 flex items-center justify-between">
         <span className="text-white text-sm font-medium">
           {tasks.length} task{tasks.length !== 1 ? 's' : ''}
@@ -113,7 +123,6 @@ export default function TaskPanel({ conversationId }) {
         </button>
       </div>
 
-      {/* Add task form */}
       {showForm && (
         <form onSubmit={handleCreate} className="p-4 border-b border-slate-700 space-y-2">
           <input
@@ -132,9 +141,10 @@ export default function TaskPanel({ conversationId }) {
           <div className="flex gap-2">
             <button
               type="submit"
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-1.5 rounded-lg transition"
+              disabled={creating}
+              className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm py-1.5 rounded-lg transition"
             >
-              Create
+              {creating ? 'Creating...' : 'Create'}
             </button>
             <button
               type="button"
@@ -147,7 +157,6 @@ export default function TaskPanel({ conversationId }) {
         </form>
       )}
 
-      {/* Tasks list */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {loading ? (
           <p className="text-slate-500 text-sm text-center mt-8">Loading...</p>
@@ -159,10 +168,7 @@ export default function TaskPanel({ conversationId }) {
           </div>
         ) : (
           tasks.map(task => (
-            <div
-              key={task._id}
-              className="bg-slate-700 rounded-xl p-3 space-y-2"
-            >
+            <div key={task._id} className="bg-slate-700 rounded-xl p-3 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <button
                   onClick={() => handleStatus(task)}
