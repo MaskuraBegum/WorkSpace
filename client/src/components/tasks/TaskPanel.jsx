@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Clock, Trash2, User } from 'lucide-react';
+import { Plus, Check, Clock, Trash2, User, CheckSquare } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { getSocket } from '../../services/socket';
