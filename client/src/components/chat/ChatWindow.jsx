@@ -109,37 +109,37 @@ export default function ChatWindow() {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+  
     if (file.size > 10 * 1024 * 1024) {
       toast.error('File size must be under 10MB');
       return;
     }
-
+  
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('conversationId', activeConversation._id);
-
     try {
-      const { data } = await api.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      // Upload directly to Cloudinary from browser
+      const { uploadToCloudinary } = await import('../../services/upload.js');
+      const fileData = await uploadToCloudinary(file);
+  
+      // Save message to backend with file info
+      const { data } = await api.post('/upload', {
+        conversationId: activeConversation._id,
+        ...fileData
       });
-
-      // Add to chat immediately
+  
       addMessage(data);
-
-      // Broadcast to other users in room
+  
       getSocket()?.emit('message:broadcast', {
         conversationId: activeConversation._id,
         message: data
       });
-
+  
       toast.success('File uploaded!');
     } catch {
       toast.error('Failed to upload file');
     } finally {
       setUploading(false);
-      fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 

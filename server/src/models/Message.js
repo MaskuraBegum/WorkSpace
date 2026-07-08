@@ -1,5 +1,12 @@
 import mongoose from 'mongoose';
 
+const fileSchema = new mongoose.Schema({
+  url: String,
+  name: String,
+  type: String,
+  size: Number
+}, { _id: false });
+
 const messageSchema = new mongoose.Schema({
   conversation: {
     type: mongoose.Schema.Types.ObjectId,
@@ -25,10 +32,8 @@ const messageSchema = new mongoose.Schema({
     default: null
   },
   file: {
-    url: String,
-    name: String,
-    type: String,
-    size: Number
+    type: fileSchema,
+    default: null
   }
 }, { timestamps: true });
 

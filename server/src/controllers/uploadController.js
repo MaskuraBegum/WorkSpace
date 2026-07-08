@@ -1,12 +1,14 @@
 import Message from '../models/Message.js';
 import Conversation from '../models/Conversation.js';
 
-export const uploadFile = async (req, res) => {
+export const saveFileMessage = async (req, res) => {
   try {
-    const { conversationId } = req.body;
+    console.log('Upload request body:', req.body);
 
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+    const { conversationId, url, name, type, size } = req.body;
+
+    if (!url || !conversationId) {
+      return res.status(400).json({ message: 'Missing required fields' });
     }
 
     const conversation = await Conversation.findOne({
@@ -22,12 +24,7 @@ export const uploadFile = async (req, res) => {
       conversation: conversationId,
       sender: req.user._id,
       content: '',
-      file: {
-        url: req.file.path,
-        name: req.file.originalname,
-        type: req.file.mimetype,
-        size: req.file.size
-      }
+      file: { url, name, type, size }
     });
 
     await Conversation.findByIdAndUpdate(conversationId, {
@@ -35,9 +32,9 @@ export const uploadFile = async (req, res) => {
     });
 
     const populated = await message.populate('sender', 'name avatarUrl');
-
     res.status(201).json(populated);
   } catch (error) {
+    console.error('Upload error:', error.message);
     res.status(500).json({ message: error.message });
   }
 };

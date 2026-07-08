@@ -6,6 +6,14 @@ const linkSchema = new mongoose.Schema({
   savedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
+const docSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  url: { type: String, required: true },
+  type: { type: String },
+  size: { type: Number },
+  savedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+}, { timestamps: true });
+
 const noteSchema = new mongoose.Schema({
   conversation: {
     type: mongoose.Schema.Types.ObjectId,
@@ -15,6 +23,7 @@ const noteSchema = new mongoose.Schema({
   },
   content: { type: String, default: '' },
   links: [linkSchema],
+  docs: [docSchema],
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
