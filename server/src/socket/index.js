@@ -138,6 +138,15 @@ const initSocket = (io) => {
     socket.on('note:link_remove', ({ conversationId, linkId }) => {
       socket.to(conversationId).emit('note:link_removed', { linkId });
     });
+    // Doc saved in notes
+socket.on('note:doc_add', ({ conversationId, doc }) => {
+  socket.to(conversationId).emit('note:doc_added', { doc });
+});
+
+// Doc removed from notes
+socket.on('note:doc_remove', ({ conversationId, docId }) => {
+  socket.to(conversationId).emit('note:doc_removed', { docId });
+});
 
     // Disconnect
     socket.on('disconnect', async () => {
