@@ -4,6 +4,7 @@ import useAuthStore from './store/authStore';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChatPage from './pages/ChatPage';
+import DashboardPage from './pages/DashboardPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuthStore();
@@ -28,6 +29,9 @@ function App() {
         } />
         <Route path="/" element={
           <ProtectedRoute><ChatPage /></ProtectedRoute>
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute><DashboardPage /></ProtectedRoute>
         } />
       </Routes>
     </BrowserRouter>

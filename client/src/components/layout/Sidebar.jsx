@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, LogOut, MessageSquare } from 'lucide-react';
+import { Search, Plus, LogOut, MessageSquare, LayoutDashboard } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useChatStore from '../../store/chatStore';
 import { disconnectSocket } from '../../services/socket';
@@ -50,6 +50,13 @@ export default function Sidebar() {
               className="w-8 h-8 bg-slate-700 hover:bg-red-600 rounded-lg flex items-center justify-center transition"
             >
               <LogOut size={16} className="text-slate-300" />
+            </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="w-8 h-8 bg-slate-700 hover:bg-indigo-600 rounded-lg flex items-center justify-center transition"
+              title="Dashboard"
+            >
+              <LayoutDashboard size={16} className="text-slate-300" />
             </button>
           </div>
         </div>
