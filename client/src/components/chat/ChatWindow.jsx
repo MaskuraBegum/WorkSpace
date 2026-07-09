@@ -196,7 +196,13 @@ export default function ChatWindow() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-6 px-6 py-5">
+      <div
+  className="flex-1 overflow-y-auto overflow-x-hidden space-y-6 px-6 py-5 chat-scroll"
+  style={{
+    scrollbarWidth: "thin",
+    scrollbarColor: `${P.goldDim} ${P.surface}`, // Firefox
+  }}
+>
         {messages.map(msg => (
           <MessageBubble
             key={msg._id}
