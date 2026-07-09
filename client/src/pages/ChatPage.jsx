@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { MessageCircle, Zap, CheckCircle2, NotebookPen, Link2, Paperclip } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { MessageCircle, Zap, CheckCircle2, NotebookPen, Link2, Paperclip, ArrowLeft, CheckSquare } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import useChatStore from '../store/chatStore';
 import { connectSocket, disconnectSocket, getSocket } from '../services/socket';
@@ -14,11 +14,41 @@ export default function ChatPage() {
   const {
     setConversations,
     activeConversation,
+    setActiveConversation,
     addMessage,
     setOnlineUsers,
     updateUserStatus,
     setTyping
   } = useChatStore();
+
+  // Mobile/tablet: whether the Tasks/Notes panel is open in place of another panel.
+  // Desktop layout ignores this entirely and always shows the workspace panel alongside the chat.
+  const [showWorkspaceMobile, setShowWorkspaceMobile] = useState(false);
+
+  // Three layout tiers, tracked via matchMedia so we can branch panel visibility in JS
+  // (CSS alone can't express "hide sidebar only when showWorkspaceMobile is true").
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const mqDesktop = window.matchMedia('(min-width: 1024px)');
+    const mqMobile = window.matchMedia('(max-width: 767px)');
+
+    const updateDesktop = (e) => setIsDesktop(e.matches);
+    const updateMobile = (e) => setIsMobile(e.matches);
+
+    setIsDesktop(mqDesktop.matches);
+    setIsMobile(mqMobile.matches);
+
+    mqDesktop.addEventListener('change', updateDesktop);
+    mqMobile.addEventListener('change', updateMobile);
+    return () => {
+      mqDesktop.removeEventListener('change', updateDesktop);
+      mqMobile.removeEventListener('change', updateMobile);
+    };
+  }, []);
+
+  const isTablet = !isDesktop && !isMobile;
 
   useEffect(() => {
     const loadConversations = async () => {
@@ -57,6 +87,36 @@ export default function ChatPage() {
     return () => disconnectSocket();
   }, []);
 
+  // Whenever the selected conversation changes, close the workspace overlay
+  // so switching chats always lands you back on the chat view, not a stale tasks screen.
+  useEffect(() => {
+    setShowWorkspaceMobile(false);
+  }, [activeConversation?._id]);
+
+  // --- Panel visibility, resolved per layout tier ---
+  // Desktop: all three panels always visible.
+  // Tablet: Sidebar+Chat by default; tapping the task button swaps Sidebar -> Workspace, Chat stays.
+  // Mobile: one panel at a time (Sidebar, or Chat, or Workspace as a full-screen overlay).
+  const sidebarVisible = isDesktop
+    ? true
+    : isTablet
+      ? !showWorkspaceMobile
+      : !activeConversation;
+
+  const chatVisible = isDesktop || isTablet
+    ? true
+    : Boolean(activeConversation) && !showWorkspaceMobile;
+
+  const workspaceVisible = Boolean(activeConversation) && (isDesktop || showWorkspaceMobile);
+
+  // Only mobile fully replaces the chat with the sidebar (needs a "back to conversations" arrow).
+  // Tablet keeps the sidebar always reachable via the workspace's own back button.
+  const showChatBackArrow = isMobile;
+  // FAB to open Tasks/Notes is needed on mobile AND tablet (desktop shows it permanently).
+  const showWorkspaceFab = !isDesktop && Boolean(activeConversation) && !showWorkspaceMobile;
+  // Workspace's own "back to chat/sidebar" header is needed whenever it's not a permanent column.
+  const showWorkspaceHeader = !isDesktop && workspaceVisible;
+
   return (
     <div
       className="cp-shell"
@@ -73,33 +133,123 @@ export default function ChatPage() {
         @keyframes cp-fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes cp-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.85); } }
         @keyframes cp-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes cp-fabIn { from { opacity: 0; transform: scale(0.8) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         .cp-dot-pulse { animation: cp-pulse 1.4s ease infinite; }
         .cp-chip { transition: all 0.18s ease; }
         .cp-chip:hover { border-color: ${P.goldDim} !important; background: ${P.goldGlow} !important; transform: translateY(-1px); }
         .cp-badge-icon { animation: cp-float 3.5s ease-in-out infinite; }
-
-        /* Responsive: stack workspace panel away and shrink sidebar on smaller screens */
-        @media (max-width: 1024px) {
-          .cp-workspace { display: none !important; }
-        }
-        @media (max-width: 640px) {
-          .cp-empty-chips { max-width: 280px !important; }
-          .cp-empty-title { font-size: 19px !important; }
-        }
+        .cp-fab { transition: all 0.18s ease; animation: cp-fabIn 0.25s ease; }
+        .cp-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 20px ${P.goldGlow}; }
+        .cp-back-btn { transition: all 0.15s ease; }
+        .cp-back-btn:hover { background: ${P.borderHover} !important; }
       `}</style>
 
-      <Sidebar />
-
-      <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        minWidth: 0, overflow: 'hidden', background: P.surface,
-      }}>
-        {activeConversation ? <ChatWindow /> : <NoChatSelected />}
+      {/* Sidebar / conversation list */}
+      <div
+        className="cp-sidebar-col"
+        style={{
+          display: sidebarVisible ? 'flex' : 'none',
+          width: isMobile ? '100%' : 'auto',
+        }}
+      >
+        <div style={{ display: 'flex', width: '100%' }}>
+          <Sidebar />
+        </div>
       </div>
 
-      {activeConversation && (
-        <div className="cp-workspace" style={{ display: 'flex', flexShrink: 0 }}>
-          <WorkspacePanel />
+      {/* Chat window */}
+      <div
+        className="cp-chat-col"
+        style={{
+          display: chatVisible ? 'flex' : 'none',
+          flex: 1, flexDirection: 'column', minWidth: 0, overflow: 'hidden',
+          background: P.surface, position: 'relative',
+          width: isMobile ? '100%' : 'auto',
+        }}
+      >
+        {activeConversation ? <ChatWindow /> : <NoChatSelected />}
+
+        {activeConversation && (
+          <>
+            {/* Back to conversation list — mobile only, since tablet+ keep the sidebar reachable */}
+            {showChatBackArrow && (
+              <button
+                className="cp-back-btn"
+                onClick={() => setActiveConversation?.(null)}
+                style={{
+                  position: 'absolute', top: '18px', left: '16px', zIndex: 5,
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: P.card, border: `1px solid ${P.border}`,
+                }}
+                title="Back to conversations"
+              >
+                <ArrowLeft size={16} style={{ color: P.text }} />
+              </button>
+            )}
+
+            {/* Open Tasks & Notes — mobile and tablet only */}
+            {showWorkspaceFab && (
+              <button
+                className="cp-fab"
+                onClick={() => setShowWorkspaceMobile(true)}
+                style={{
+                  position: 'absolute', top: '18px', right: '16px', zIndex: 5,
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: P.gold, border: 'none',
+                  boxShadow: `0 2px 10px ${P.goldGlow}`,
+                }}
+                title="Tasks & Notes"
+              >
+                <CheckSquare size={16} style={{ color: '#0d0d0d' }} />
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Workspace panel (Tasks/Notes) — permanent column on desktop, toggled column on tablet, full-screen overlay on mobile */}
+      {activeConversation && workspaceVisible && (
+        <div
+          className="cp-workspace-col"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            position: isMobile ? 'fixed' : 'static',
+            inset: isMobile ? 0 : 'auto',
+            zIndex: isMobile ? 20 : 'auto',
+            background: P.surface,
+            width: isMobile ? '100%' : 'auto',
+          }}
+        >
+          {/* Back header — shown whenever the panel isn't a permanent desktop column */}
+          {showWorkspaceHeader && (
+            <div
+              style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '18px 20px', background: P.card, borderBottom: `1px solid ${P.border}`, flexShrink: 0,
+              }}
+            >
+              <button
+                className="cp-back-btn"
+                onClick={() => setShowWorkspaceMobile(false)}
+                style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: P.surface, border: `1px solid ${P.border}`,
+                }}
+                title="Back"
+              >
+                <ArrowLeft size={16} style={{ color: P.text }} />
+              </button>
+              <span className="font-semibold text-sm" style={{ color: P.text }}>Tasks &amp; Notes</span>
+            </div>
+          )}
+
+          <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            <WorkspacePanel />
+          </div>
         </div>
       )}
     </div>

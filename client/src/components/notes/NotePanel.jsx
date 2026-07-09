@@ -251,30 +251,45 @@ export default function NotePanel({ conversationId }) {
 
       {/* Notes tab */}
       {tab === 'notes' && (
-        <div className="flex flex-col h-full min-h-0">
-          <div className="px-4 py-3 flex items-center justify-between shrink-0" style={{ borderBottom: `1px solid ${P.border}` }}>
-            <span className="text-xs font-medium" style={{ color: P.textMid, lineHeight: 1.4 }}>Shared notes</span>
-            <span className="text-xs font-medium flex items-center gap-2" style={{ color: saving ? P.goldDim : P.green, lineHeight: 1.4 }}>
-              <span
-                className={saving ? 'np-saving-dot' : ''}
-                style={{ width: '6px', height: '6px', borderRadius: '50%', background: saving ? P.goldDim : P.green, display: 'inline-block', flexShrink: 0 }}
-              />
-              {saving ? 'Saving...' : 'Saved'}
-            </span>
-          </div>
-          <div className="flex-1 p-4 min-h-0">
-            <textarea
-              value={content}
-              onChange={handleChange}
-              placeholder="Start typing shared notes here..."
-              className="np-input w-full h-full text-sm rounded-2xl outline-none resize-none transition"
-              style={{
-                background: P.card, color: P.text,
-                border: `1px solid ${P.border}`,
-                padding: '16px', lineHeight: 1.7,
-              }}
-            />
-          </div>
+        <div className="flex flex-col h-full min-h-0 gap-3">
+          <div style={{
+  padding: '10px 12px',
+  borderBottom: `1px solid ${P.border}`,
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  flexShrink: 0
+}}>
+  <span style={{ fontSize: '11px', fontWeight: 600, color: P.textMid,lineHeight: 1.4 }}>Shared Notes</span>
+  <span style={{
+    fontSize: '11px', fontWeight: 500,
+    display: 'flex', alignItems: 'center', gap: '6px',
+    color: saving ? P.goldDim : P.green
+  }}>
+    <span style={{
+      width: '6px', height: '6px', borderRadius: '50%',
+      background: saving ? P.goldDim : P.green,
+      display: 'inline-block', flexShrink: 0
+    }} className={saving ? 'np-saving-dot' : ''} />
+    {saving ? 'Saving...' : 'Saved'}
+  </span>
+</div>
+<div style={{ flex: 1, padding: '10px', minHeight: 0 }}>
+  <textarea
+    value={content}
+    onChange={handleChange}
+    placeholder="Start typing shared notes here..."
+    className="np-input"
+    style={{
+      width: '100%', height: '100%', boxSizing: 'border-box',
+      background: P.card, color: P.text,
+      border: `1px solid ${P.border}`,
+      borderRadius: '16px', padding: '16px',
+      fontSize: '13px', lineHeight: 1.7,
+      resize: 'none', outline: 'none',
+      fontFamily: "'Inter', sans-serif",
+      transition: 'border-color 0.15s',
+    }}
+  />
+</div>
         </div>
       )}
 
@@ -283,7 +298,7 @@ export default function NotePanel({ conversationId }) {
         <div className="flex flex-col h-full min-h-0">
           <div
             className="px-4 flex items-center justify-between shrink-0 gap-3"
-            style={{ borderBottom: `1px solid ${P.border}`, paddingTop: '18px', paddingBottom: '18px' }}
+            style={{ borderBottom: `1px solid ${P.border}`, padding:`10px 12px` }}
           >
             <span className="text-xs font-medium truncate" style={{ color: P.textMid, lineHeight: 1.4 }}>
               {links.length} saved link{links.length !== 1 ? 's' : ''}
@@ -406,7 +421,7 @@ export default function NotePanel({ conversationId }) {
 
           <div
             className="px-4 flex items-center justify-between shrink-0 gap-3"
-            style={{ borderBottom: `1px solid ${P.border}`, paddingTop: '18px', paddingBottom: '18px' }}
+            style={{ borderBottom: `1px solid ${P.border}`,  padding:`10px 12px` }}
           >
             <span className="text-xs font-medium truncate" style={{ color: P.textMid, lineHeight: 1.4 }}>
               {docs.length} saved doc{docs.length !== 1 ? 's' : ''}

@@ -174,11 +174,15 @@ export default function ChatWindow() {
         .cw-bubble-file:hover { opacity: 0.85; }
         .cw-bubble-img:hover { opacity: 0.92; }
         .cw-typing-dot { animation: cw-pulse 1.2s ease infinite; }
+
+        @media (max-width: 767px) {
+          .cw-header { padding-left: 66px !important; padding-right: 62px !important; }
+        }
       `}</style>
 
       {/* Header */}
       <div
-        className="flex items-center gap-4 shrink-0"
+        className="cw-header flex items-center gap-4 shrink-0"
         style={{ background: P.card, borderBottom: `1px solid ${P.border}`, padding: '24px 28px' }}
       >
         <div
@@ -205,7 +209,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-6" style={{ padding: '20px 24px' }}>
+      <div className="flex-1 overflow-y-auto space-y-6" style={{ padding: '20px 24px', overflowX: 'hidden' }}>
         {messages.map(msg => (
           <MessageBubble
             key={msg._id}
@@ -379,11 +383,18 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
             {/* Image */}
             {isImage && (
               <a href={message.file.url} target="_blank" rel="noopener noreferrer">
-                <img
-                  src={message.file.url}
-                  alt={message.file.name}
-                  className="cw-bubble-img max-w-xs rounded-2xl cursor-pointer transition"
-                />
+               <img
+  src={message.file.url}
+  alt={message.file.name}
+  className="cw-bubble-img rounded-2xl cursor-pointer transition"
+  style={{
+    width: "100%",
+    maxWidth: "320px",
+    height: "auto",
+    display: "block",
+    objectFit: "contain",
+  }}
+/>
               </a>
             )}
 

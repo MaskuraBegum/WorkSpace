@@ -29,7 +29,7 @@ export default function Sidebar() {
   });
 
   return (
-    <div style={{
+    <div className="sb-container" style={{
       width: '320px', background: P.surface, display: 'flex', flexDirection: 'column',
       borderRight: `1px solid ${P.border}`, flexShrink: 0, height: '100%',
     }}>
@@ -38,6 +38,11 @@ export default function Sidebar() {
         .sb-logout-btn:hover { background: rgba(248,113,113,0.1) !important; color: ${P.red} !important; }
         .sb-search:focus { border-color: ${P.gold} !important; }
         .sb-empty-link:hover { color: ${P.gold} !important; }
+
+        /* Mobile: take the full width of its container instead of the fixed desktop width */
+        @media (max-width: 767px) {
+          .sb-container { width: 100% !important; }
+        }
       `}</style>
 
       {/* Header */}

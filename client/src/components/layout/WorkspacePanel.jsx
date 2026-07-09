@@ -19,7 +19,17 @@ export default function WorkspacePanel() {
   });
 
   return (
-    <div style={{ width: '320px', background: P.surface, borderLeft: `1px solid ${P.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100%' }}>
+    <div
+      className="wp-container"
+      style={{ width: '320px', background: P.surface, borderLeft: `1px solid ${P.border}`, display: 'flex', flexDirection: 'column', flexShrink: 0, height: '100%' }}
+    >
+      <style>{`
+        /* Mobile: take the full width of its container instead of the fixed desktop width */
+        @media (max-width: 767px) {
+          .wp-container { width: 100% !important; border-left: none !important; }
+        }
+      `}</style>
+
       <div style={{ display: 'flex', borderBottom: `1px solid ${P.border}`, padding: '4px 4px 0' }}>
         <button onClick={() => setTab('tasks')} style={tabStyle(tab === 'tasks')}>
           <CheckSquare size={15} /> Tasks
