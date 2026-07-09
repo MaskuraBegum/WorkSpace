@@ -6,6 +6,7 @@ import useAuthStore from '../../store/authStore';
 import useChatStore from '../../store/chatStore';
 import { uploadToCloudinary } from '../../services/upload';
 import toast from 'react-hot-toast';
+import { P } from '../../theme';
 
 export default function NotePanel({ conversationId }) {
   const { user } = useAuthStore();
@@ -208,19 +209,38 @@ export default function NotePanel({ conversationId }) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const tabStyle = (active) => ({
+    background: active ? P.goldGlow : 'transparent',
+    color: active ? P.gold : P.textMid,
+    borderBottom: active ? `2px solid ${P.gold}` : '2px solid transparent',
+  });
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" style={{ background: P.surface }}>
+      <style>{`
+        @keyframes np-spin { to { transform: rotate(360deg); } }
+        @keyframes np-fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes np-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .np-tab:hover { color: ${P.gold} !important; }
+        .np-input:focus { border-color: ${P.gold} !important; box-shadow: 0 0 0 3px ${P.goldGlow}; }
+        .np-save-btn:hover { background: ${P.goldDim} !important; transform: translateY(-1px); }
+        .np-cancel-btn:hover { background: ${P.borderHover} !important; }
+        .np-delete-btn:hover { color: ${P.red} !important; background: rgba(248,113,113,0.1) !important; }
+        .np-download-btn:hover { color: ${P.gold} !important; background: ${P.goldGlow} !important; }
+        .np-link-text:hover { color: ${P.gold} !important; text-decoration: underline; }
+        .np-card { transition: all 0.18s ease; }
+        .np-card:hover { border-color: ${P.borderHover} !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
+        .np-saving-dot { animation: np-pulse 1.2s ease infinite; }
+      `}</style>
+
       {/* Tabs */}
-      <div className="flex border-b border-slate-700">
+      <div className="flex px-3 pt-3 pb-0 gap-1.5 shrink-0" style={{ borderBottom: `1px solid ${P.border}` }}>
         {['notes', 'links', 'docs'].map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-3 text-xs font-medium transition capitalize ${
-              tab === t
-                ? 'text-indigo-400 border-b-2 border-indigo-500'
-                : 'text-slate-400 hover:text-white'
-            }`}
+            className="np-tab flex-1 text-xs font-semibold rounded-t-lg transition capitalize truncate"
+            style={{ ...tabStyle(tab === t), padding: '10px 8px 12px', lineHeight: 1.2 }}
           >
             {t === 'links' ? `Links${links.length > 0 ? ` (${links.length})` : ''}` :
              t === 'docs' ? `Docs${docs.length > 0 ? ` (${docs.length})` : ''}` :
@@ -231,17 +251,28 @@ export default function NotePanel({ conversationId }) {
 
       {/* Notes tab */}
       {tab === 'notes' && (
-        <div className="flex flex-col h-full">
-          <div className="px-4 py-2 flex items-center justify-between border-b border-slate-700">
-            <span className="text-xs text-slate-500">Shared notes</span>
-            <span className="text-xs text-slate-500">{saving ? '💾 Saving...' : '✓ Saved'}</span>
+        <div className="flex flex-col h-full min-h-0">
+          <div className="px-4 py-3 flex items-center justify-between shrink-0" style={{ borderBottom: `1px solid ${P.border}` }}>
+            <span className="text-xs font-medium" style={{ color: P.textMid, lineHeight: 1.4 }}>Shared notes</span>
+            <span className="text-xs font-medium flex items-center gap-2" style={{ color: saving ? P.goldDim : P.green, lineHeight: 1.4 }}>
+              <span
+                className={saving ? 'np-saving-dot' : ''}
+                style={{ width: '6px', height: '6px', borderRadius: '50%', background: saving ? P.goldDim : P.green, display: 'inline-block', flexShrink: 0 }}
+              />
+              {saving ? 'Saving...' : 'Saved'}
+            </span>
           </div>
-          <div className="flex-1 p-4">
+          <div className="flex-1 p-4 min-h-0">
             <textarea
               value={content}
               onChange={handleChange}
               placeholder="Start typing shared notes here..."
-              className="w-full h-full bg-slate-700 text-white text-sm p-3 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-500 resize-none leading-relaxed"
+              className="np-input w-full h-full text-sm rounded-2xl outline-none resize-none transition"
+              style={{
+                background: P.card, color: P.text,
+                border: `1px solid ${P.border}`,
+                padding: '16px', lineHeight: 1.7,
+              }}
             />
           </div>
         </div>
@@ -249,46 +280,60 @@ export default function NotePanel({ conversationId }) {
 
       {/* Links tab */}
       {tab === 'links' && (
-        <div className="flex flex-col h-full">
-          <div className="px-4 py-3 flex items-center justify-between border-b border-slate-700">
-            <span className="text-xs text-slate-500">{links.length} saved link{links.length !== 1 ? 's' : ''}</span>
+        <div className="flex flex-col h-full min-h-0">
+          <div
+            className="px-4 flex items-center justify-between shrink-0 gap-3"
+            style={{ borderBottom: `1px solid ${P.border}`, paddingTop: '18px', paddingBottom: '18px' }}
+          >
+            <span className="text-xs font-medium truncate" style={{ color: P.textMid, lineHeight: 1.4 }}>
+              {links.length} saved link{links.length !== 1 ? 's' : ''}
+            </span>
             <button
               onClick={() => setShowLinkForm(!showLinkForm)}
-              className="flex items-center gap-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1.5 rounded-lg transition"
+              className="np-save-btn flex items-center gap-1.5 text-xs font-bold rounded-lg transition shrink-0"
+              style={{ background: P.gold, color: '#0d0d0d', boxShadow: `0 2px 10px ${P.goldGlow}`, padding: '10px 14px', lineHeight: 1 }}
             >
-              <Plus size={11} />
+              <Plus size={12} strokeWidth={2.5} />
               Save Link
             </button>
           </div>
 
           {showLinkForm && (
-            <form onSubmit={handleAddLink} className="p-4 border-b border-slate-700 space-y-2">
+            <form
+              onSubmit={handleAddLink}
+              className="p-4 space-y-3 shrink-0"
+              style={{ borderBottom: `1px solid ${P.border}`, background: 'rgba(0,0,0,0.15)', animation: 'np-fadeUp 0.2s ease' }}
+            >
               <input
                 value={linkForm.name}
                 onChange={e => setLinkForm({ ...linkForm, name: e.target.value })}
                 placeholder="Link name (e.g. Design Figma File)"
-                className="w-full bg-slate-700 text-white text-sm px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-500"
+                className="np-input w-full text-sm rounded-xl outline-none transition"
+                style={{ background: P.card, color: P.text, border: `1px solid ${P.border}`, padding: '11px 14px', lineHeight: 1.4 }}
                 autoFocus
               />
               <input
                 value={linkForm.url}
                 onChange={e => setLinkForm({ ...linkForm, url: e.target.value })}
                 placeholder="URL (e.g. https://figma.com/...)"
-                className="w-full bg-slate-700 text-white text-sm px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-500"
+                className="np-input w-full text-sm rounded-xl outline-none transition"
+                style={{ background: P.card, color: P.text, border: `1px solid ${P.border}`, padding: '11px 14px', lineHeight: 1.4 }}
               />
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1">
                 <button
                   type="submit"
                   disabled={addingLink}
-                  className="flex-1 flex items-center justify-center gap-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm py-1.5 rounded-lg transition"
+                  className="np-save-btn flex-1 flex items-center justify-center gap-1.5 disabled:opacity-50 text-sm font-bold rounded-xl transition"
+                  style={{ background: P.gold, color: '#0d0d0d', padding: '11px 0', lineHeight: 1 }}
                 >
-                  <Save size={12} />
+                  <Save size={13} />
                   {addingLink ? 'Saving...' : 'Save'}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowLinkForm(false); setLinkForm({ url: '', name: '' }); }}
-                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-sm py-1.5 rounded-lg transition"
+                  className="np-cancel-btn flex-1 text-sm font-medium rounded-xl transition"
+                  style={{ background: P.card, color: P.text, border: `1px solid ${P.border}`, padding: '11px 0', lineHeight: 1 }}
                 >
                   Cancel
                 </button>
@@ -296,34 +341,49 @@ export default function NotePanel({ conversationId }) {
             </form>
           )}
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
             {links.length === 0 ? (
-              <div className="text-center mt-8">
-                <Link size={32} className="text-slate-600 mx-auto mb-2" />
-                <p className="text-slate-500 text-sm">No links saved yet</p>
+              <div className="text-center" style={{ paddingTop: '56px' }}>
+                <div style={{
+                  width: '52px', height: '52px', borderRadius: '14px', background: P.goldGlow,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+                }}>
+                  <Link size={22} style={{ color: P.goldDim }} />
+                </div>
+                <p className="text-sm font-medium" style={{ color: P.text, lineHeight: 1.5 }}>No links saved yet</p>
+                <p className="text-xs mt-2" style={{ color: P.textMid, lineHeight: 1.5 }}>Save Figma files, docs, or any shared URL</p>
               </div>
             ) : (
-              links.map(link => (
-                <div key={link._id} className="bg-slate-700 rounded-xl p-3 flex items-start gap-3">
-                  <div className="w-8 h-8 bg-indigo-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Link size={14} className="text-indigo-400" />
+              links.map((link, i) => (
+                <div
+                  key={link._id}
+                  className="np-card rounded-2xl flex items-start gap-3"
+                  style={{ background: P.card, border: `1px solid ${P.border}`, animation: `np-fadeUp 0.25s ease ${i * 0.03}s both`, padding: '14px' }}
+                >
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: P.goldGlow }}>
+                    <Link size={15} style={{ color: P.gold }} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{link.name}</p>
+                  <div className="flex-1 min-w-0" style={{ paddingTop: '1px' }}>
+                    <p className="text-sm font-semibold truncate" style={{ color: P.text, lineHeight: 1.5 }}>{link.name}</p>
                     
-                      <a href={link.url}
+                    <a  href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-indigo-400 text-xs truncate hover:underline flex items-center gap-1 mt-0.5"
+                      className="np-link-text text-xs truncate flex items-center gap-1.5 transition"
+                      style={{ color: P.goldDim, lineHeight: 1.6, marginTop: '4px' }}
                     >
-                      <ExternalLink size={10} />
-                      {link.url}
+                      <ExternalLink size={10} className="shrink-0" />
+                      <span className="truncate">{link.url}</span>
                     </a>
                     {link.savedBy && (
-                      <p className="text-slate-500 text-xs mt-1">Saved by {link.savedBy.name}</p>
+                      <p className="text-xs truncate" style={{ color: P.textDim, lineHeight: 1.6, marginTop: '6px' }}>Saved by {link.savedBy.name}</p>
                     )}
                   </div>
-                  <button onClick={() => handleDeleteLink(link._id)} className="text-slate-500 hover:text-red-400 transition">
+                  <button
+                    onClick={() => handleDeleteLink(link._id)}
+                    className="np-delete-btn transition shrink-0"
+                    style={{ color: P.textMid, width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
                     <X size={14} />
                   </button>
                 </div>
@@ -335,7 +395,7 @@ export default function NotePanel({ conversationId }) {
 
       {/* Docs tab */}
       {tab === 'docs' && (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full min-h-0">
           <input
             type="file"
             ref={docInputRef}
@@ -344,54 +404,71 @@ export default function NotePanel({ conversationId }) {
             accept=".pdf,.docx,.xlsx,.txt,.png,.jpg,.jpeg"
           />
 
-          <div className="px-4 py-3 flex items-center justify-between border-b border-slate-700">
-            <span className="text-xs text-slate-500">{docs.length} saved doc{docs.length !== 1 ? 's' : ''}</span>
+          <div
+            className="px-4 flex items-center justify-between shrink-0 gap-3"
+            style={{ borderBottom: `1px solid ${P.border}`, paddingTop: '18px', paddingBottom: '18px' }}
+          >
+            <span className="text-xs font-medium truncate" style={{ color: P.textMid, lineHeight: 1.4 }}>
+              {docs.length} saved doc{docs.length !== 1 ? 's' : ''}
+            </span>
             <button
               onClick={() => docInputRef.current?.click()}
               disabled={uploadingDoc}
-              className="flex items-center gap-1 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-2.5 py-1.5 rounded-lg transition"
+              className="np-save-btn flex items-center gap-1.5 text-xs font-bold disabled:opacity-50 rounded-lg transition shrink-0"
+              style={{ background: P.gold, color: '#0d0d0d', boxShadow: `0 2px 10px ${P.goldGlow}`, padding: '10px 14px', lineHeight: 1 }}
             >
               {uploadingDoc
-                ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                : <Upload size={11} />
+                ? <div style={{ width: '12px', height: '12px', border: '2px solid #0d0d0d', borderTopColor: 'transparent', borderRadius: '50%', animation: 'np-spin 0.7s linear infinite' }} />
+                : <Upload size={12} strokeWidth={2.5} />
               }
               {uploadingDoc ? 'Uploading...' : 'Upload Doc'}
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
             {docs.length === 0 ? (
-              <div className="text-center mt-8">
-                <FileText size={32} className="text-slate-600 mx-auto mb-2" />
-                <p className="text-slate-500 text-sm">No documents saved yet</p>
-                <p className="text-slate-600 text-xs mt-1">Upload PDFs, Word docs, spreadsheets</p>
+              <div className="text-center" style={{ paddingTop: '56px' }}>
+                <div style={{
+                  width: '52px', height: '52px', borderRadius: '14px', background: P.goldGlow,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+                }}>
+                  <FileText size={22} style={{ color: P.goldDim }} />
+                </div>
+                <p className="text-sm font-medium" style={{ color: P.text, lineHeight: 1.5 }}>No documents saved yet</p>
+                <p className="text-xs mt-2" style={{ color: P.textMid, lineHeight: 1.5 }}>Upload PDFs, Word docs, spreadsheets</p>
               </div>
             ) : (
-              docs.map(doc => (
-                <div key={doc._id} className="bg-slate-700 rounded-xl p-3 flex items-start gap-3">
-                  <div className="w-10 h-10 bg-indigo-600/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <File size={18} className="text-indigo-400" />
+              docs.map((doc, i) => (
+                <div
+                  key={doc._id}
+                  className="np-card rounded-2xl flex items-start gap-3"
+                  style={{ background: P.card, border: `1px solid ${P.border}`, animation: `np-fadeUp 0.25s ease ${i * 0.03}s both`, padding: '14px' }}
+                >
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: P.goldGlow }}>
+                    <File size={18} style={{ color: P.gold }} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{doc.name}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">{formatSize(doc.size)}</p>
+                  <div className="flex-1 min-w-0" style={{ paddingTop: '1px' }}>
+                    <p className="text-sm font-semibold truncate" style={{ color: P.text, lineHeight: 1.5 }}>{doc.name}</p>
+                    <p className="text-xs" style={{ color: P.textMid, lineHeight: 1.6, marginTop: '4px' }}>{formatSize(doc.size)}</p>
                     {doc.savedBy && (
-                      <p className="text-slate-500 text-xs mt-0.5">Saved by {doc.savedBy.name}</p>
+                      <p className="text-xs truncate" style={{ color: P.textDim, lineHeight: 1.6, marginTop: '4px' }}>Saved by {doc.savedBy.name}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     
                      <a href={doc.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-slate-400 hover:text-indigo-400 transition"
+                      className="np-download-btn transition"
+                      style={{ color: P.textMid, width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       title="Download"
                     >
                       <Download size={14} />
                     </a>
                     <button
                       onClick={() => handleDeleteDoc(doc._id)}
-                      className="text-slate-500 hover:text-red-400 transition"
+                      className="np-delete-btn transition"
+                      style={{ color: P.textMid, width: '28px', height: '28px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
                       <X size={14} />
                     </button>

@@ -7,6 +7,7 @@ import api from '../../services/api';
 import ConversationItem from '../chat/ConversationItem';
 import NewChatModal from '../chat/NewChatModal';
 import { useNavigate } from 'react-router-dom';
+import { P } from '../../theme';
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
@@ -28,67 +29,136 @@ export default function Sidebar() {
   });
 
   return (
-    <div className="w-80 bg-slate-800 flex flex-col border-r border-slate-700 flex-shrink-0">
+    <div style={{
+      width: '320px', background: P.surface, display: 'flex', flexDirection: 'column',
+      borderRight: `1px solid ${P.border}`, flexShrink: 0, height: '100%',
+    }}>
+      <style>{`
+        .sb-icon-btn:hover { background: ${P.goldGlow} !important; color: ${P.gold} !important; }
+        .sb-logout-btn:hover { background: rgba(248,113,113,0.1) !important; color: ${P.red} !important; }
+        .sb-search:focus { border-color: ${P.gold} !important; }
+        .sb-empty-link:hover { color: ${P.gold} !important; }
+      `}</style>
+
       {/* Header */}
-      <div className="p-4 border-b border-slate-700">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <MessageSquare size={16} className="text-white" />
+      <div style={{ padding: '16px', borderBottom: `1px solid ${P.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '32px', height: '32px', borderRadius: '10px',
+              background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 0 12px ${P.goldGlow}`,
+            }}>
+              <MessageSquare size={16} color="#0d0d0d" />
             </div>
-            <span className="font-bold text-white">WorkSpace</span>
+            <span style={{ fontWeight: 800, color: P.text, letterSpacing: '-0.3px' }}>WorkSpace</span>
           </div>
-          <div className="flex items-center gap-2">
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
               onClick={() => setShowNewChat(true)}
-              className="w-8 h-8 bg-slate-700 hover:bg-slate-600 rounded-lg flex items-center justify-center transition"
+              className="sb-icon-btn"
+              title="New conversation"
+              style={{
+                width: '32px', height: '32px', borderRadius: '8px',
+                background: 'transparent', border: `1px solid ${P.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: P.textMid, cursor: 'pointer', transition: 'all 0.15s',
+              }}
             >
-              <Plus size={16} className="text-slate-300" />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="w-8 h-8 bg-slate-700 hover:bg-red-600 rounded-lg flex items-center justify-center transition"
-            >
-              <LogOut size={16} className="text-slate-300" />
+              <Plus size={16} />
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="w-8 h-8 bg-slate-700 hover:bg-indigo-600 rounded-lg flex items-center justify-center transition"
+              className="sb-icon-btn"
               title="Dashboard"
+              style={{
+                width: '32px', height: '32px', borderRadius: '8px',
+                background: 'transparent', border: `1px solid ${P.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: P.textMid, cursor: 'pointer', transition: 'all 0.15s',
+              }}
             >
-              <LayoutDashboard size={16} className="text-slate-300" />
+              <LayoutDashboard size={16} />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="sb-logout-btn"
+              title="Log out"
+              style={{
+                width: '32px', height: '32px', borderRadius: '8px',
+                background: 'transparent', border: `1px solid ${P.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: P.textMid, cursor: 'pointer', transition: 'all 0.15s',
+              }}
+            >
+              <LogOut size={16} />
             </button>
           </div>
         </div>
 
         {/* Search */}
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div style={{ position: 'relative' }}>
+          <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: P.textMid }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full bg-slate-700 text-white text-sm pl-9 pr-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-500"
+            className="sb-search"
+            style={{
+              width: '100%', background: P.card, color: P.text, fontSize: '13px',
+              padding: '9px 14px 9px 36px', borderRadius: '10px',
+              border: `1px solid ${P.border}`, outline: 'none', transition: 'border-color 0.15s',
+              boxSizing: 'border-box',
+            }}
           />
         </div>
       </div>
 
       {/* User info */}
-      <div className="px-4 py-3 border-b border-slate-700 flex items-center gap-3">
-        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+      <div style={{
+        padding: '12px 16px', borderBottom: `1px solid ${P.border}`,
+        display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0,0,0,0.15)',
+      }}>
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+          background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '13px', fontWeight: 800, color: '#0d0d0d',
+        }}>
           {user.name?.charAt(0).toUpperCase()}
         </div>
-        <div className="min-w-0">
-          <p className="text-white text-sm font-medium truncate">{user.name}</p>
-          <p className="text-slate-400 text-xs truncate">{user.email}</p>
+        <div style={{ minWidth: 0 }}>
+          <p style={{ color: P.text, fontSize: '13px', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {user.name}
+          </p>
+          <p style={{ color: P.textMid, fontSize: '11px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {user.email}
+          </p>
         </div>
       </div>
 
       {/* Conversations list */}
-      <div className="flex-1 overflow-y-auto">
+      <div style={{ flex: 1, overflowY: 'auto' }}>
         {filtered.length === 0 ? (
-          <div className="p-4 text-center text-slate-500 text-sm mt-8">
-            {search ? 'No conversations found' : 'No conversations yet. Start one!'}
+          <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+            <p style={{ color: P.textMid, fontSize: '13px', margin: 0 }}>
+              {search ? 'No conversations found' : 'No conversations yet'}
+            </p>
+            {!search && (
+              <button
+                onClick={() => setShowNewChat(true)}
+                className="sb-empty-link"
+                style={{
+                  marginTop: '10px', background: 'none', border: 'none',
+                  color: P.goldDim, fontSize: '13px', fontWeight: 600,
+                  cursor: 'pointer', transition: 'color 0.15s',
+                }}
+              >
+                Start a conversation
+              </button>
+            )}
           </div>
         ) : (
           filtered.map(conversation => (

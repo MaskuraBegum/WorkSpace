@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Clock, Trash2, User, CheckSquare } from 'lucide-react';
+import { Plus, Check, Clock, Trash2, User, CheckSquare, Save } from 'lucide-react';
 import api from '../../services/api';
 import { getSocket } from '../../services/socket';
 import useChatStore from '../../store/chatStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { P } from '../../theme';
 
 export default function TaskPanel({ conversationId }) {
   const { tasks, setTasks, addTask, updateTask, removeTask } = useChatStore();
@@ -96,10 +97,11 @@ export default function TaskPanel({ conversationId }) {
     }
   };
 
+  // Same status keys/values as before — only the color tokens now map to the P theme
   const statusColor = {
-    PENDING: 'text-slate-400 border-slate-600',
-    IN_PROGRESS: 'text-yellow-400 border-yellow-600',
-    DONE: 'text-green-400 border-green-600'
+    PENDING: { text: P.textMid, border: P.textMid, dot: P.textMid },
+    IN_PROGRESS: { text: P.gold, border: P.goldDim, dot: P.gold },
+    DONE: { text: P.green, border: P.green, dot: P.green }
   };
 
   const statusLabel = {
@@ -109,47 +111,76 @@ export default function TaskPanel({ conversationId }) {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-slate-700 flex items-center justify-between">
-        <span className="text-white text-sm font-medium">
+    <div className="flex flex-col h-full" style={{ background: P.surface }}>
+      <style>{`
+        @keyframes tp-spin { to { transform: rotate(360deg); } }
+        @keyframes tp-fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .tp-input:focus { border-color: ${P.gold} !important; box-shadow: 0 0 0 3px ${P.goldGlow}; }
+        .tp-save-btn:hover { background: ${P.goldDim} !important; transform: translateY(-1px); }
+        .tp-cancel-btn:hover { background: ${P.borderHover} !important; }
+        .tp-delete-btn:hover { color: ${P.red} !important; background: rgba(248,113,113,0.1) !important; }
+        .tp-card { transition: all 0.18s ease; }
+        .tp-card:hover { border-color: ${P.borderHover} !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
+        .tp-check:hover { filter: brightness(1.15); }
+      `}</style>
+
+      {/* Header */}
+      <div
+        className="px-4 flex items-center justify-between shrink-0 gap-3"
+        style={{ borderBottom: `1px solid ${P.border}`, paddingTop: '18px', paddingBottom: '18px' }}
+      >
+        <span className="text-sm font-semibold truncate" style={{ color: P.text, lineHeight: 1.4 }}>
           {tasks.length} task{tasks.length !== 1 ? 's' : ''}
         </span>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition"
+          className="tp-save-btn flex items-center gap-1.5 text-sm font-bold rounded-lg transition shrink-0"
+          style={{ background: P.gold, color: '#0d0d0d', boxShadow: `0 2px 10px ${P.goldGlow}`, padding: '10px 16px', lineHeight: 1 }}
         >
-          <Plus size={12} />
+          <Plus size={14} strokeWidth={2.5} />
           Add Task
         </button>
       </div>
 
+      {/* Create form */}
       {showForm && (
-        <form onSubmit={handleCreate} className="p-4 border-b border-slate-700 space-y-2">
+        <form
+          onSubmit={handleCreate}
+          className="p-4 space-y-3 shrink-0"
+          style={{ borderBottom: `1px solid ${P.border}`, background: 'rgba(0,0,0,0.15)', animation: 'tp-fadeUp 0.2s ease' }}
+        >
+          <label className="block text-xs font-semibold" style={{ color: P.textMid, marginBottom: '-4px' }}>Title</label>
           <input
             value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
             placeholder="Task title..."
-            className="w-full bg-slate-700 text-white text-sm px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-500"
+            className="tp-input w-full text-sm font-medium rounded-xl outline-none transition"
+            style={{ background: P.card, color: P.text, border: `1px solid ${P.border}`, padding: '12px 14px', lineHeight: 1.4 }}
             autoFocus
           />
+          <label className="block text-xs font-semibold" style={{ color: P.textMid, marginBottom: '-4px' }}>Due date</label>
           <input
             type="date"
             value={form.dueDate}
             onChange={e => setForm({ ...form, dueDate: e.target.value })}
-            className="w-full bg-slate-700 text-white text-sm px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+            className="tp-input w-full text-sm font-medium rounded-xl outline-none transition"
+            style={{ background: P.card, color: P.text, border: `1px solid ${P.border}`, padding: '12px 14px', lineHeight: 1.4, colorScheme: 'dark' }}
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-1">
             <button
               type="submit"
               disabled={creating}
-              className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm py-1.5 rounded-lg transition"
+              className="tp-save-btn flex-1 flex items-center justify-center gap-1.5 disabled:opacity-50 text-sm font-bold rounded-xl transition"
+              style={{ background: P.gold, color: '#0d0d0d', padding: '12px 0', lineHeight: 1 }}
             >
+              <Save size={14} />
               {creating ? 'Creating...' : 'Create'}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-sm py-1.5 rounded-lg transition"
+              className="tp-cancel-btn flex-1 text-sm font-semibold rounded-xl transition"
+              style={{ background: P.card, color: P.text, border: `1px solid ${P.border}`, padding: '12px 0', lineHeight: 1 }}
             >
               Cancel
             </button>
@@ -157,57 +188,93 @@ export default function TaskPanel({ conversationId }) {
         </form>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      {/* Task list */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
         {loading ? (
-          <p className="text-slate-500 text-sm text-center mt-8">Loading...</p>
+          <div className="flex items-center justify-center" style={{ paddingTop: '56px' }}>
+            <div style={{ width: '18px', height: '18px', border: `2px solid ${P.border}`, borderTopColor: P.gold, borderRadius: '50%', animation: 'tp-spin 0.7s linear infinite' }} />
+          </div>
         ) : tasks.length === 0 ? (
-          <div className="text-center mt-8">
-            <CheckSquare size={32} className="text-slate-600 mx-auto mb-2" />
-            <p className="text-slate-500 text-sm">No tasks yet</p>
-            <p className="text-slate-600 text-xs mt-1">Add a task or convert a message</p>
+          <div className="text-center" style={{ paddingTop: '56px' }}>
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '14px', background: P.goldGlow,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+            }}>
+              <CheckSquare size={22} style={{ color: P.goldDim }} />
+            </div>
+            <p className="text-base font-semibold" style={{ color: P.text, lineHeight: 1.5 }}>No tasks yet</p>
+            <p className="text-sm mt-2" style={{ color: P.textMid, lineHeight: 1.5 }}>Add a task or convert a message</p>
           </div>
         ) : (
-          tasks.map(task => (
-            <div key={task._id} className="bg-slate-700 rounded-xl p-3 space-y-2">
-              <div className="flex items-start justify-between gap-2">
-                <button
-                  onClick={() => handleStatus(task)}
-                  className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition ${statusColor[task.status]}`}
-                >
-                  {task.status === 'DONE' && <Check size={10} />}
-                  {task.status === 'IN_PROGRESS' && <div className="w-2 h-2 rounded-full bg-yellow-400" />}
-                </button>
-                <p className={`flex-1 text-sm ${task.status === 'DONE' ? 'line-through text-slate-500' : 'text-white'}`}>
-                  {task.title}
-                </p>
-                <button
-                  onClick={() => handleDelete(task._id)}
-                  className="text-slate-500 hover:text-red-400 transition flex-shrink-0"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
+          tasks.map((task, i) => {
+            const sc = statusColor[task.status];
+            return (
+              <div
+                key={task._id}
+                className="tp-card rounded-2xl"
+                style={{ background: P.card, border: `1px solid ${P.border}`, animation: `tp-fadeUp 0.25s ease ${i * 0.03}s both`, padding: '14px' }}
+              >
+                <div className="flex items-start gap-3">
+                  <button
+                    onClick={() => handleStatus(task)}
+                    className="tp-check shrink-0 transition"
+                    style={{
+                      width: '24px', height: '24px', borderRadius: '50%',
+                      border: `2px solid ${sc.border}`, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', marginTop: '1px',
+                      background: task.status === 'DONE' ? P.green : 'transparent',
+                    }}
+                  >
+                    {task.status === 'DONE' && <Check size={12} color="#0d0d0d" strokeWidth={3} />}
+                    {task.status === 'IN_PROGRESS' && <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: P.gold }} />}
+                  </button>
 
-              <div className="flex items-center justify-between">
-                <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColor[task.status]}`}>
-                  {statusLabel[task.status]}
-                </span>
-                {task.dueDate && (
-                  <div className="flex items-center gap-1 text-xs text-slate-400">
-                    <Clock size={10} />
-                    {format(new Date(task.dueDate), 'MMM d')}
-                  </div>
-                )}
-              </div>
+                  <p
+                    className="flex-1 text-sm font-semibold min-w-0"
+                    style={{
+                      color: task.status === 'DONE' ? P.textDim : P.text,
+                      textDecoration: task.status === 'DONE' ? 'line-through' : 'none',
+                      lineHeight: 1.5, paddingTop: '1px', wordBreak: 'break-word',
+                    }}
+                  >
+                    {task.title}
+                  </p>
 
-              {task.assignedTo && (
-                <div className="flex items-center gap-1 text-xs text-slate-400">
-                  <User size={10} />
-                  {task.assignedTo.name}
+                  <button
+                    onClick={() => handleDelete(task._id)}
+                    className="tp-delete-btn transition shrink-0"
+                    style={{ color: P.textMid, width: '30px', height: '30px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
-              )}
-            </div>
-          ))
+
+                <div className="flex items-center justify-between flex-wrap gap-2" style={{ marginTop: '10px', paddingLeft: '36px' }}>
+                  <span
+                    className="text-xs font-bold rounded-full"
+                    style={{ color: sc.text, border: `1.5px solid ${sc.border}`, padding: '4px 12px', lineHeight: 1.4, letterSpacing: '0.02em' }}
+                  >
+                    {statusLabel[task.status]}
+                  </span>
+
+                  <div className="flex items-center gap-3">
+                    {task.dueDate && (
+                      <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: P.text, lineHeight: 1.4 }}>
+                        <Clock size={12} style={{ color: P.textMid }} />
+                        {format(new Date(task.dueDate), 'MMM d')}
+                      </div>
+                    )}
+                    {task.assignedTo && (
+                      <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: P.text, lineHeight: 1.4 }}>
+                        <User size={12} style={{ color: P.textMid }} />
+                        {task.assignedTo.name}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
