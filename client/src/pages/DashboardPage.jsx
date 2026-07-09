@@ -1,11 +1,34 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckSquare, Clock, AlertCircle, Check, LayoutDashboard, MessageSquare, LogOut } from 'lucide-react';
+import {
+  CheckSquare, Clock, AlertCircle, Check,
+  LayoutDashboard, MessageSquare, LogOut,
+  TrendingUp, Calendar, ChevronRight, Zap
+} from 'lucide-react';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import { disconnectSocket } from '../services/socket';
 import { formatDistanceToNow, format } from 'date-fns';
 import toast from 'react-hot-toast';
+
+// ── Palette ──────────────────────────────────────────────
+const P = {
+  bg:       '#0d0d0d',
+  surface:  '#141414',
+  card:     '#1a1a1a',
+  border:   '#2a2218',
+  borderHover: '#3d3220',
+  gold:     '#f5c842',
+  goldDim:  '#c9a227',
+  goldGlow: 'rgba(245,200,66,0.12)',
+  text:     '#f0ead6',
+  textMid:  '#8a7d5e',
+  textDim:  '#4a4030',
+  green:    '#4ade80',
+  yellow:   '#facc15',
+  red:      '#f87171',
+  slate:    '#94a3b8',
+};
 
 export default function DashboardPage() {
   const { user, logout } = useAuthStore();
@@ -14,9 +37,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
 
-  useEffect(() => {
-    loadTasks();
-  }, [filter]);
+  useEffect(() => { loadTasks(); }, [filter]);
 
   const loadTasks = async () => {
     try {
@@ -32,137 +53,260 @@ export default function DashboardPage() {
   };
 
   const handleStatusUpdate = async (task) => {
-    const nextStatus = {
-      PENDING: 'IN_PROGRESS',
-      IN_PROGRESS: 'DONE',
-      DONE: 'PENDING'
-    };
+    const next = { PENDING: 'IN_PROGRESS', IN_PROGRESS: 'DONE', DONE: 'PENDING' };
     try {
-      const { data } = await api.put(`/tasks/${task._id}`, {
-        status: nextStatus[task.status]
-      });
+      const { data } = await api.put(`/tasks/${task._id}`, { status: next[task.status] });
       setTasks(prev => prev.map(t => t._id === data._id ? { ...data, isOverdue: t.isOverdue } : t));
-    } catch {
-      toast.error('Failed to update task');
-    }
+    } catch { toast.error('Failed to update task'); }
   };
 
-  const handleLogout = () => {
-    disconnectSocket();
-    logout();
-    navigate('/login');
-  };
+  const handleLogout = () => { disconnectSocket(); logout(); navigate('/login'); };
 
   const stats = {
-    total: tasks.length,
-    pending: tasks.filter(t => t.status === 'PENDING').length,
+    total:      tasks.length,
+    pending:    tasks.filter(t => t.status === 'PENDING').length,
     inProgress: tasks.filter(t => t.status === 'IN_PROGRESS').length,
-    done: tasks.filter(t => t.status === 'DONE').length,
-    overdue: tasks.filter(t => t.isOverdue).length,
+    done:       tasks.filter(t => t.status === 'DONE').length,
+    overdue:    tasks.filter(t => t.isOverdue).length,
   };
 
-  const statusColor = {
-    PENDING: 'text-slate-400 border-slate-600',
-    IN_PROGRESS: 'text-yellow-400 border-yellow-600',
-    DONE: 'text-green-400 border-green-600'
+  const donePercent = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+  const circumference = 2 * Math.PI * 16;
+  const dashOffset = circumference - (donePercent / 100) * circumference;
+
+  const filters = [
+    { key: 'ALL',        label: 'All',         count: stats.total },
+    { key: 'PENDING',    label: 'To Do',        count: stats.pending },
+    { key: 'IN_PROGRESS',label: 'In Progress',  count: stats.inProgress },
+    { key: 'DONE',       label: 'Done',         count: stats.done },
+  ];
+
+  const statusCfg = {
+    PENDING:     { label: 'To Do',       color: P.slate,  bg: 'rgba(148,163,184,0.1)',  border: 'rgba(148,163,184,0.25)' },
+    IN_PROGRESS: { label: 'In Progress', color: P.yellow, bg: 'rgba(250,204,21,0.1)',   border: 'rgba(250,204,21,0.25)' },
+    DONE:        { label: 'Done',        color: P.green,  bg: 'rgba(74,222,128,0.1)',   border: 'rgba(74,222,128,0.25)' },
   };
 
-  const statusLabel = {
-    PENDING: 'Todo',
-    IN_PROGRESS: 'In Progress',
-    DONE: 'Done'
-  };
-
-  const filters = ['ALL', 'PENDING', 'IN_PROGRESS', 'DONE'];
+  const s = (style) => style;
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      {/* Header */}
-      <div className="bg-slate-800 border-b border-slate-700 px-6 py-4">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <LayoutDashboard size={16} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-white font-bold">Workspace Dashboard</h1>
-              <p className="text-slate-400 text-xs">All your tasks across conversations</p>
-            </div>
+    <div style={s({ minHeight:'100vh', background: P.bg, color: P.text, fontFamily: "'Inter', sans-serif" })}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .task-row:hover { background: #1f1f1f !important; border-color: ${P.borderHover} !important; }
+        .filter-btn:hover { border-color: ${P.goldDim} !important; color: ${P.gold} !important; }
+        .nav-btn:hover { background: ${P.goldGlow} !important; color: ${P.gold} !important; border-color: ${P.border} !important; }
+        .logout-btn:hover { background: rgba(248,113,113,0.08) !important; color: ${P.red} !important; }
+        .status-btn:hover { opacity: 0.8; transform: scale(1.1); }
+        .go-chat:hover { background: ${P.goldDim} !important; }
+      `}</style>
+
+      {/* ── Header ── */}
+      <header style={s({
+        background: P.surface,
+        borderBottom: `1px solid ${P.border}`,
+        padding: '0 32px', height: '60px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'sticky', top: 0, zIndex: 50,
+      })}>
+        <div style={s({ display:'flex', alignItems:'center', gap:'12px' })}>
+          <div style={s({
+            width:'36px', height:'36px', borderRadius:'10px',
+            background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`,
+            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+            boxShadow: `0 0 16px ${P.goldGlow}`
+          })}>
+            <Zap size={17} color="#0d0d0d" fill="#0d0d0d" />
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
-                {user.name?.charAt(0).toUpperCase()}
+          <div>
+            <div style={s({ fontWeight:800, fontSize:'15px', color: P.text, letterSpacing:'-0.3px' })}>WorkSpace</div>
+            <div style={s({ fontSize:'11px', color: P.textMid })}>Task Dashboard</div>
+          </div>
+        </div>
+
+        <div style={s({ display:'flex', alignItems:'center', gap:'8px' })}>
+          <div style={s({ display:'flex', alignItems:'center', gap:'8px', marginRight:'12px' })}>
+            <div style={s({
+              width:'30px', height:'30px', borderRadius:'50%',
+              background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`,
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:'12px', fontWeight:800, color:'#0d0d0d', flexShrink:0
+            })}>
+              {user.name?.charAt(0).toUpperCase()}
+            </div>
+            <span style={s({ fontSize:'13px', color: P.textMid })}>{user.name}</span>
+          </div>
+
+          <button className="nav-btn" onClick={() => navigate('/')} style={s({
+            display:'flex', alignItems:'center', gap:'6px', padding:'6px 12px',
+            borderRadius:'8px', background:'transparent', border:`1px solid ${P.border}`,
+            color: P.textMid, fontSize:'12px', fontWeight:500, cursor:'pointer', transition:'all 0.15s'
+          })}>
+            <MessageSquare size={13} /> Chat
+          </button>
+
+          <button className="logout-btn" onClick={handleLogout} style={s({
+            display:'flex', alignItems:'center', gap:'6px', padding:'6px 12px',
+            borderRadius:'8px', background:'transparent', border:`1px solid ${P.border}`,
+            color: P.textMid, fontSize:'12px', fontWeight:500, cursor:'pointer', transition:'all 0.15s'
+          })}>
+            <LogOut size={13} /> Logout
+          </button>
+        </div>
+      </header>
+
+      {/* ── Body ── */}
+      <div style={s({ maxWidth:'1100px', margin:'0 auto', padding:'36px 32px 80px', width:'100%', boxSizing:'border-box' })}>
+
+        {/* Greeting + ring */}
+        <div style={s({ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:'36px', flexWrap:'wrap', gap:'16px' })}>
+          <div>
+            <h2 style={s({ fontSize:'26px', fontWeight:800, color: P.text, letterSpacing:'-0.5px', marginBottom:'6px' })}>
+              Hey, {user.name?.split(' ')[0]} 👋
+            </h2>
+            <p style={s({ fontSize:'14px', color: P.textMid })}>
+              {stats.total === 0
+                ? 'No tasks yet — create one inside a conversation.'
+                : stats.pending + stats.inProgress === 0
+                  ? '🎉 All tasks complete! Excellent work.'
+                  : `${stats.pending + stats.inProgress} task${stats.pending + stats.inProgress !== 1 ? 's' : ''} still in progress`}
+            </p>
+          </div>
+
+          {stats.total > 0 && (
+            <div style={s({ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px' })}>
+              <div style={s({ position:'relative', width:'60px', height:'60px' })}>
+                <svg viewBox="0 0 36 36" style={s({ width:'60px', height:'60px', transform:'rotate(-90deg)' })}>
+                  <circle cx="18" cy="18" r="16" fill="none" stroke={P.border} strokeWidth="3" />
+                  <circle
+                    cx="18" cy="18" r="16" fill="none"
+                    stroke={P.gold} strokeWidth="3"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={dashOffset}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                  />
+                </svg>
+                <div style={s({
+                  position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize:'12px', fontWeight:800, color: P.gold
+                })}>
+                  {donePercent}%
+                </div>
               </div>
-              <span className="text-white text-sm">{user.name}</span>
+              <span style={s({ fontSize:'10px', color: P.textMid, fontWeight:500 })}>Complete</span>
             </div>
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition px-3 py-1.5 bg-slate-700 rounded-lg"
-            >
-              <MessageSquare size={14} />
-              Chat
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-slate-400 hover:text-red-400 text-sm transition px-3 py-1.5 bg-slate-700 rounded-lg"
-            >
-              <LogOut size={14} />
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-          <StatCard label="Total" value={stats.total} color="bg-slate-700" icon={<CheckSquare size={18} className="text-slate-400" />} />
-          <StatCard label="Todo" value={stats.pending} color="bg-slate-700" icon={<Clock size={18} className="text-slate-400" />} />
-          <StatCard label="In Progress" value={stats.inProgress} color="bg-yellow-500/10" icon={<Clock size={18} className="text-yellow-400" />} />
-          <StatCard label="Done" value={stats.done} color="bg-green-500/10" icon={<Check size={18} className="text-green-400" />} />
-          <StatCard label="Overdue" value={stats.overdue} color="bg-red-500/10" icon={<AlertCircle size={18} className="text-red-400" />} />
+          )}
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 mb-6">
+        {/* ── Stat cards ── */}
+        <div style={s({ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'12px', marginBottom:'28px' })}>
+          {[
+            { label:'Total Tasks',  value: stats.total,      accent: P.gold,   icon: <TrendingUp size={15}/> },
+            { label:'To Do',        value: stats.pending,    accent: P.slate,  icon: <CheckSquare size={15}/> },
+            { label:'In Progress',  value: stats.inProgress, accent: P.yellow, icon: <Clock size={15}/> },
+            { label:'Done',         value: stats.done,       accent: P.green,  icon: <Check size={15}/> },
+            { label:'Overdue',      value: stats.overdue,    accent: P.red,    icon: <AlertCircle size={15}/> },
+          ].map(({ label, value, accent, icon }) => (
+            <div key={label} style={s({
+              background: P.card,
+              border: `1px solid ${P.border}`,
+              borderRadius:'14px', padding:'18px 16px',
+              display:'flex', flexDirection:'column', gap:'14px',
+              boxShadow: value > 0 ? `0 0 0 1px ${accent}15` : 'none',
+            })}>
+              <div style={s({ display:'flex', alignItems:'center', justifyContent:'space-between' })}>
+                <div style={s({
+                  width:'32px', height:'32px', borderRadius:'8px',
+                  background:`${accent}15`, display:'flex', alignItems:'center',
+                  justifyContent:'center', color: accent
+                })}>
+                  {icon}
+                </div>
+                <span style={s({ fontSize:'30px', fontWeight:900, color: value > 0 ? P.text : P.textDim, lineHeight:1 })}>{value}</span>
+              </div>
+              <p style={s({ fontSize:'11px', fontWeight:600, color: accent, opacity: 0.75, textTransform:'uppercase', letterSpacing:'0.5px' })}>{label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Filter bar ── */}
+        <div style={s({ display:'flex', alignItems:'center', gap:'8px', marginBottom:'20px', flexWrap:'wrap' })}>
           {filters.map(f => (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
-                filter === f
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:text-white border border-slate-700'
-              }`}
+              key={f.key}
+              className={filter === f.key ? '' : 'filter-btn'}
+              onClick={() => setFilter(f.key)}
+              style={s({
+                padding:'6px 14px', borderRadius:'8px', fontSize:'12px', fontWeight:500,
+                cursor:'pointer', transition:'all 0.15s',
+                background: filter === f.key ? P.gold : 'transparent',
+                border: `1px solid ${filter === f.key ? P.gold : P.border}`,
+                color: filter === f.key ? '#0d0d0d' : P.textMid,
+              })}
             >
-              {f === 'ALL' ? 'All' :
-               f === 'IN_PROGRESS' ? 'In Progress' :
-               f.charAt(0) + f.slice(1).toLowerCase()}
+              {f.label} <span style={{ opacity:0.6 }}>({f.count})</span>
             </button>
           ))}
           <button
+            className="filter-btn"
             onClick={loadTasks}
-            className="ml-auto text-xs text-slate-400 hover:text-white transition"
+            style={s({
+              marginLeft:'auto', padding:'6px 14px', borderRadius:'8px',
+              fontSize:'12px', fontWeight:500, cursor:'pointer', transition:'all 0.15s',
+              background:'transparent', border:`1px solid ${P.border}`, color: P.textMid,
+            })}
           >
-            Refresh
+            ↻ Refresh
           </button>
         </div>
 
-        {/* Tasks list */}
+        {/* ── Divider ── */}
+        <div style={s({ height:'1px', background:`linear-gradient(90deg, ${P.gold}40, transparent)`, marginBottom:'20px' })} />
+
+        {/* ── Task list ── */}
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div style={s({ display:'flex', justifyContent:'center', paddingTop:'80px' })}>
+            <div style={s({
+              width:'36px', height:'36px', borderRadius:'50%',
+              border:`3px solid ${P.gold}`, borderTopColor:'transparent',
+              animation:'spin 0.7s linear infinite'
+            })} />
           </div>
         ) : tasks.length === 0 ? (
-          <div className="text-center py-20">
-            <CheckSquare size={48} className="text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400 text-lg font-medium">No tasks found</p>
-            <p className="text-slate-500 text-sm mt-1">Tasks you create in conversations will appear here</p>
+          <div style={s({
+            textAlign:'center', padding:'72px 24px',
+            background: P.card, borderRadius:'18px', border:`1px solid ${P.border}`,
+            animation:'fadeUp 0.4s ease'
+          })}>
+            <div style={s({
+              width:'60px', height:'60px', borderRadius:'16px',
+              background:`${P.gold}15`, display:'flex', alignItems:'center',
+              justifyContent:'center', margin:'0 auto 16px'
+            })}>
+              <CheckSquare size={26} color={P.goldDim} />
+            </div>
+            <p style={s({ fontSize:'16px', fontWeight:700, color: P.text, marginBottom:'6px' })}>No tasks here</p>
+            <p style={s({ fontSize:'13px', color: P.textMid, marginBottom:'24px' })}>
+              Head to a conversation and create your first task.
+            </p>
+            <button
+              className="go-chat"
+              onClick={() => navigate('/')}
+              style={s({
+                padding:'9px 22px', borderRadius:'10px',
+                background: P.gold, color:'#0d0d0d', border:'none',
+                fontSize:'13px', fontWeight:700, cursor:'pointer', transition:'background 0.15s'
+              })}
+            >
+              Open Chat →
+            </button>
           </div>
         ) : (
-          <div className="space-y-3">
-            {tasks.map(task => {
+          <div style={s({ display:'flex', flexDirection:'column', gap:'8px', animation:'fadeUp 0.3s ease' })}>
+            {tasks.map((task, i) => {
+              const cfg = statusCfg[task.status];
               const conversationName = task.conversation?.name ||
                 task.conversation?.members?.find(m => m._id !== user._id)?.name ||
                 'Conversation';
@@ -170,68 +314,85 @@ export default function DashboardPage() {
               return (
                 <div
                   key={task._id}
-                  className={`bg-slate-800 rounded-xl p-4 border ${
-                    task.isOverdue ? 'border-red-500/30' : 'border-slate-700'
-                  }`}
+                  className="task-row"
+                  style={s({
+                    background: P.card,
+                    borderRadius:'14px', padding:'16px 20px',
+                    border: task.isOverdue ? `1px solid rgba(248,113,113,0.25)` : `1px solid ${P.border}`,
+                    display:'flex', alignItems:'center', gap:'16px',
+                    transition:'all 0.15s', cursor:'default',
+                    animation:`fadeUp 0.3s ease ${i * 0.04}s both`
+                  })}
                 >
-                  <div className="flex items-start gap-4">
-                    <button
-                      onClick={() => handleStatusUpdate(task)}
-                      className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition mt-0.5 ${statusColor[task.status]}`}
-                    >
-                      {task.status === 'DONE' && <Check size={12} />}
-                      {task.status === 'IN_PROGRESS' && <div className="w-2 h-2 rounded-full bg-yellow-400" />}
-                    </button>
+                  {/* Status toggle */}
+                  <button
+                    className="status-btn"
+                    onClick={() => handleStatusUpdate(task)}
+                    title="Click to change status"
+                    style={s({
+                      width:'22px', height:'22px', borderRadius:'50%',
+                      border:`2px solid ${cfg.color}`,
+                      background: task.status !== 'PENDING' ? cfg.bg : 'transparent',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      cursor:'pointer', flexShrink:0, transition:'all 0.15s'
+                    })}
+                  >
+                    {task.status === 'DONE' && <Check size={11} color={P.green} />}
+                    {task.status === 'IN_PROGRESS' && (
+                      <div style={s({ width:'8px', height:'8px', borderRadius:'50%', background: P.yellow })} />
+                    )}
+                  </button>
 
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-medium ${task.status === 'DONE' ? 'line-through text-slate-500' : 'text-white'}`}>
-                        {task.title}
-                      </p>
-                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                        <span className="text-xs text-slate-500 flex items-center gap-1">
-                          <MessageSquare size={10} />
-                          {conversationName}
+                  {/* Title + meta */}
+                  <div style={s({ flex:1, minWidth:0 })}>
+                    <p style={s({
+                      fontSize:'14px', fontWeight:500, lineHeight:1.4,
+                      color: task.status === 'DONE' ? P.textDim : P.text,
+                      textDecoration: task.status === 'DONE' ? 'line-through' : 'none',
+                      marginBottom:'5px'
+                    })}>
+                      {task.title}
+                    </p>
+                    <div style={s({ display:'flex', alignItems:'center', gap:'14px', flexWrap:'wrap' })}>
+                      <span style={s({ fontSize:'11px', color: P.textMid, display:'flex', alignItems:'center', gap:'4px' })}>
+                        <MessageSquare size={10} /> {conversationName}
+                      </span>
+                      {task.dueDate && (
+                        <span style={s({
+                          fontSize:'11px', display:'flex', alignItems:'center', gap:'4px',
+                          color: task.isOverdue ? P.red : P.textMid, fontWeight: task.isOverdue ? 600 : 400
+                        })}>
+                          <Calendar size={10} />
+                          {task.isOverdue ? '⚠ ' : ''}{format(new Date(task.dueDate), 'MMM d, yyyy')}
                         </span>
-                        {task.dueDate && (
-                          <span className={`text-xs flex items-center gap-1 ${task.isOverdue ? 'text-red-400' : 'text-slate-400'}`}>
-                            <Clock size={10} />
-                            {task.isOverdue ? 'Overdue · ' : ''}
-                            {format(new Date(task.dueDate), 'MMM d, yyyy')}
-                          </span>
-                        )}
-                        {task.assignedTo && (
-                          <span className="text-xs text-slate-400">
-                            👤 {task.assignedTo.name}
-                          </span>
-                        )}
-                        <span className="text-xs text-slate-600">
-                          {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
-                        </span>
-                      </div>
+                      )}
+                      {task.assignedTo && (
+                        <span style={s({ fontSize:'11px', color: P.textMid })}>👤 {task.assignedTo.name}</span>
+                      )}
+                      <span style={s({ fontSize:'11px', color: P.textDim })}>
+                        {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+                      </span>
                     </div>
-
-                    <span className={`text-xs px-2 py-0.5 rounded-full border flex-shrink-0 ${statusColor[task.status]}`}>
-                      {statusLabel[task.status]}
-                    </span>
                   </div>
+
+                  {/* Status badge */}
+                  <div style={s({
+                    display:'flex', alignItems:'center', gap:'6px',
+                    padding:'4px 10px', borderRadius:'20px', flexShrink:0,
+                    fontSize:'11px', fontWeight:600,
+                    background: cfg.bg, color: cfg.color, border:`1px solid ${cfg.border}`
+                  })}>
+                    <div style={s({ width:'6px', height:'6px', borderRadius:'50%', background: cfg.color })} />
+                    {cfg.label}
+                  </div>
+
+                  <ChevronRight size={14} color={P.textDim} style={{ flexShrink:0 }} />
                 </div>
               );
             })}
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, color, icon }) {
-  return (
-    <div className={`${color} rounded-xl p-4 border border-slate-700`}>
-      <div className="flex items-center justify-between mb-2">
-        {icon}
-        <span className="text-2xl font-bold text-white">{value}</span>
-      </div>
-      <p className="text-slate-400 text-xs">{label}</p>
     </div>
   );
 }
