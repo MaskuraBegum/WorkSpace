@@ -2,6 +2,15 @@ import useAuthStore from '../../store/authStore';
 import useChatStore from '../../store/chatStore';
 import { formatDistanceToNow } from 'date-fns';
 
+const P = {
+  gold:      '#f5c842',
+  goldDim:   '#c9a227',
+  text:      '#ffffff',   // active name — max contrast
+  textMid:   '#ded4b0',   // last message preview — brighter, clearly legible
+  textDim:   '#a89f82',   // timestamps
+  textFaint: '#9a8f70',   // inactive name
+};
+
 export default function ConversationItem({ conversation, isActive, onClick }) {
   const { user } = useAuthStore();
   const { onlineUsers } = useChatStore();
@@ -18,25 +27,63 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition hover:bg-slate-700 ${isActive ? 'bg-slate-700 border-r-2 border-indigo-500' : ''}`}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '12px',
+        padding: '11px 16px', cursor: 'pointer',
+        background: isActive ? 'rgba(245,200,66,0.10)' : 'transparent',
+        borderRight: isActive ? `2px solid ${P.gold}` : '2px solid transparent',
+        transition: 'background 0.15s, border-color 0.15s',
+      }}
+      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(245,200,66,0.06)'; }}
+      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
     >
-      {/* Avatar */}
-      <div className="relative flex-shrink-0">
-        <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold">
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{
+          width: '40px', height: '40px', borderRadius: '50%',
+          background: isActive
+            ? `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`
+            : 'rgba(245,200,66,0.16)',
+          border: `1px solid ${isActive ? P.gold : 'rgba(245,200,66,0.3)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '15px', fontWeight: 700,
+          color: isActive ? '#0d0d0d' : P.gold,
+          transition: 'all 0.15s',
+        }}>
           {initial}
         </div>
         {isOnline && (
-          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-400 rounded-full border-2 border-slate-800" />
+          <div style={{
+            position: 'absolute', bottom: '1px', right: '1px',
+            width: '10px', height: '10px', borderRadius: '50%',
+            background: '#4ade80', border: '2px solid #111111',
+            boxShadow: '0 0 5px rgba(74,222,128,0.7)',
+          }} />
         )}
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <p className="text-white text-sm font-medium truncate">{name}</p>
-          <p className="text-slate-500 text-xs flex-shrink-0 ml-2">{time}</p>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+          <p style={{
+            fontSize: '14.5px', fontWeight: 700, letterSpacing: '0.1px',
+            color: isActive ? P.text : P.textFaint,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            margin: 0,
+          }}>
+            {name}
+          </p>
+          {time && (
+            <span style={{ fontSize: '11px', fontWeight: 500, color: P.textDim, flexShrink: 0 }}>
+              {time}
+            </span>
+          )}
         </div>
-        <p className="text-slate-400 text-xs truncate mt-0.5">{lastMsg}</p>
+        <p style={{
+          fontSize: '12.5px', fontWeight: 500, color: P.textMid, lineHeight: 1.45,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          margin: 0,
+        }}>
+          {lastMsg}
+        </p>
       </div>
     </div>
   );
