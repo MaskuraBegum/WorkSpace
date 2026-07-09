@@ -27,61 +27,48 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   return (
     <div
       onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '11px 16px', cursor: 'pointer',
-        background: isActive ? 'rgba(245,200,66,0.10)' : 'transparent',
-        borderRight: isActive ? `2px solid ${P.gold}` : '2px solid transparent',
-        transition: 'background 0.15s, border-color 0.15s',
-      }}
-      onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(245,200,66,0.06)'; }}
-      onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+      className={`flex items-center gap-3 px-4 py-[11px] cursor-pointer transition-colors duration-150 border-r-2 ${
+        isActive ? 'border-[#f5c842]' : 'border-transparent hover:bg-[rgba(245,200,66,0.06)]'
+      }`}
+      style={isActive ? { background: 'rgba(245,200,66,0.10)' } : undefined}
     >
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <div style={{
-          width: '40px', height: '40px', borderRadius: '50%',
-          background: isActive
-            ? `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`
-            : 'rgba(245,200,66,0.16)',
-          border: `1px solid ${isActive ? P.gold : 'rgba(245,200,66,0.3)'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '15px', fontWeight: 700,
-          color: isActive ? '#0d0d0d' : P.gold,
-          transition: 'all 0.15s',
-        }}>
+      <div className="relative shrink-0">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-bold transition-all duration-150"
+          style={{
+            background: isActive ? `linear-gradient(135deg, ${P.gold}, ${P.goldDim})` : 'rgba(245,200,66,0.16)',
+            border: `1px solid ${isActive ? P.gold : 'rgba(245,200,66,0.3)'}`,
+            color: isActive ? '#0d0d0d' : P.gold,
+          }}
+        >
           {initial}
         </div>
         {isOnline && (
-          <div style={{
-            position: 'absolute', bottom: '1px', right: '1px',
-            width: '10px', height: '10px', borderRadius: '50%',
-            background: '#4ade80', border: '2px solid #111111',
-            boxShadow: '0 0 5px rgba(74,222,128,0.7)',
-          }} />
+          <div
+            className="absolute bottom-[1px] right-[1px] w-2.5 h-2.5 rounded-full"
+            style={{ background: '#4ade80', border: '2px solid #111111', boxShadow: '0 0 5px rgba(74,222,128,0.7)' }}
+          />
         )}
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
-          <p style={{
-            fontSize: '14.5px', fontWeight: 700, letterSpacing: '0.1px',
-            color: isActive ? P.text : P.textFaint,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            margin: 0,
-          }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline justify-between gap-2 mb-1">
+          <p
+            className="text-[14.5px] font-bold whitespace-nowrap overflow-hidden text-ellipsis m-0"
+            style={{ letterSpacing: '0.1px', color: isActive ? P.text : P.textFaint }}
+          >
             {name}
           </p>
           {time && (
-            <span style={{ fontSize: '11px', fontWeight: 500, color: P.textDim, flexShrink: 0 }}>
+            <span className="text-[11px] font-medium shrink-0" style={{ color: P.textDim }}>
               {time}
             </span>
           )}
         </div>
-        <p style={{
-          fontSize: '12.5px', fontWeight: 500, color: P.textMid, lineHeight: 1.45,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          margin: 0,
-        }}>
+        <p
+          className="text-[12.5px] font-medium leading-[1.45] whitespace-nowrap overflow-hidden text-ellipsis m-0"
+          style={{ color: P.textMid }}
+        >
           {lastMsg}
         </p>
       </div>

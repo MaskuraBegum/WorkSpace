@@ -110,31 +110,31 @@ export default function ChatWindow() {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
+
     if (file.size > 10 * 1024 * 1024) {
       toast.error('File size must be under 10MB');
       return;
     }
-  
+
     setUploading(true);
     try {
       // Upload directly to Cloudinary from browser
       const { uploadToCloudinary } = await import('../../services/upload.js');
       const fileData = await uploadToCloudinary(file);
-  
+
       // Save message to backend with file info
       const { data } = await api.post('/upload', {
         conversationId: activeConversation._id,
         ...fileData
       });
-  
+
       addMessage(data);
-  
+
       getSocket()?.emit('message:broadcast', {
         conversationId: activeConversation._id,
         message: data
       });
-  
+
       toast.success('File uploaded!');
     } catch {
       toast.error('Failed to upload file');
@@ -162,28 +162,15 @@ export default function ChatWindow() {
   return (
     <div className="flex flex-col h-full" style={{ background: P.surface }}>
       <style>{`
-        @keyframes cw-spin { to { transform: rotate(360deg); } }
         @keyframes cw-fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes cw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .cw-attach-btn:hover { color: ${P.gold} !important; }
-        .cw-send-btn:hover:not(:disabled) { background: ${P.goldDim} !important; transform: translateY(-1px); }
-        .cw-input-bar:focus-within { border-color: ${P.goldDim} !important; box-shadow: 0 0 0 3px ${P.goldGlow}; }
-        .cw-action-btn { transition: all 0.15s ease; }
-        .cw-action-btn:hover { background: ${P.goldGlow} !important; }
-        .cw-action-btn:hover svg { color: ${P.gold} !important; }
-        .cw-bubble-file:hover { opacity: 0.85; }
-        .cw-bubble-img:hover { opacity: 0.92; }
         .cw-typing-dot { animation: cw-pulse 1.2s ease infinite; }
-
-        @media (max-width: 767px) {
-          .cw-header { padding-left: 66px !important; padding-right: 62px !important; }
-        }
       `}</style>
 
       {/* Header */}
       <div
-        className="cw-header flex items-center gap-4 shrink-0"
-        style={{ background: P.card, borderBottom: `1px solid ${P.border}`, padding: '24px 28px' }}
+        className="flex items-center gap-4 shrink-0 py-6 pl-[66px] pr-[62px] md:px-7"
+        style={{ background: P.card, borderBottom: `1px solid ${P.border}` }}
       >
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0"
@@ -191,15 +178,15 @@ export default function ChatWindow() {
         >
           {name?.charAt(0).toUpperCase()}
         </div>
-        <div className="min-w-0" style={{ paddingLeft: '2px' }}>
-          <p className="font-semibold text-sm truncate" style={{ color: P.text, lineHeight: 1.4 }}>{name}</p>
+        <div className="min-w-0 pl-0.5">
+          <p className="font-semibold text-sm truncate leading-[1.4]" style={{ color: P.text }}>{name}</p>
           {typing ? (
-            <p className="text-xs flex items-center gap-1.5" style={{ color: P.green, lineHeight: 1.4, marginTop: '4px' }}>
-              <span className="cw-typing-dot" style={{ width: '5px', height: '5px', borderRadius: '50%', background: P.green, display: 'inline-block' }} />
+            <p className="text-xs flex items-center gap-1.5 leading-[1.4] mt-1" style={{ color: P.green }}>
+              <span className="cw-typing-dot inline-block w-[5px] h-[5px] rounded-full" style={{ background: P.green }} />
               {typing.userName} is typing...
             </p>
           ) : (
-            <p className="text-xs truncate" style={{ color: P.textMid, lineHeight: 1.4, marginTop: '4px' }}>
+            <p className="text-xs truncate leading-[1.4] mt-1" style={{ color: P.textMid }}>
               {activeConversation?.isGroup
                 ? `${activeConversation.members?.length} members`
                 : other?.email}
@@ -209,7 +196,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto space-y-6" style={{ padding: '20px 24px', overflowX: 'hidden' }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden space-y-6 px-6 py-5">
         {messages.map(msg => (
           <MessageBubble
             key={msg._id}
@@ -225,12 +212,12 @@ export default function ChatWindow() {
       {/* Reply preview */}
       {replyTo && (
         <div
-          className="mx-6 px-4 py-2.5 flex items-center justify-between rounded-t-xl shrink-0"
-          style={{ background: P.card, border: `1px solid ${P.border}`, borderBottom: 'none', marginTop: '4px', animation: 'cw-fadeUp 0.15s ease' }}
+          className="mx-6 mt-1 px-4 py-2.5 flex items-center justify-between rounded-t-xl shrink-0 animate-[cw-fadeUp_0.15s_ease]"
+          style={{ background: P.card, border: `1px solid ${P.border}`, borderBottom: 'none' }}
         >
           <div className="flex items-center gap-2 min-w-0">
             <CornerUpLeft size={14} style={{ color: P.gold }} className="shrink-0" />
-            <p className="text-sm truncate" style={{ color: P.textMid, lineHeight: 1.4 }}>{replyTo.content}</p>
+            <p className="text-sm truncate leading-[1.4]" style={{ color: P.textMid }}>{replyTo.content}</p>
           </div>
           <button onClick={() => setReplyTo(null)} className="shrink-0" style={{ color: P.textMid }}>
             <X size={14} />
@@ -250,19 +237,22 @@ export default function ChatWindow() {
         />
 
         <div
-          className="cw-input-bar flex items-center gap-3 rounded-2xl transition"
-          style={{ background: P.surface, border: `1px solid ${P.border}`, padding: '10px 14px' }}
+          className="flex items-center gap-3 rounded-2xl transition px-3.5 py-2.5 focus-within:border-[#c9a227] focus-within:shadow-[0_0_0_3px_rgba(245,200,66,0.12)]"
+          style={{ background: P.surface, border: `1px solid ${P.border}` }}
         >
           {/* File upload button */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="cw-attach-btn transition disabled:opacity-40 shrink-0"
+            className="transition shrink-0 disabled:opacity-40 disabled:pointer-events-none hover:text-[#f5c842]"
             style={{ color: P.textMid }}
             title="Attach file"
           >
             {uploading
-              ? <div style={{ width: '16px', height: '16px', border: `2px solid ${P.goldDim}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'cw-spin 0.7s linear infinite' }} />
+              ? <div
+                  className="w-4 h-4 rounded-full animate-spin"
+                  style={{ border: `2px solid ${P.goldDim}`, borderTopColor: 'transparent' }}
+                />
               : <Paperclip size={18} />
             }
           </button>
@@ -279,7 +269,7 @@ export default function ChatWindow() {
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="cw-send-btn w-9 h-9 rounded-xl flex items-center justify-center transition disabled:opacity-40 shrink-0"
+            className="w-9 h-9 rounded-xl flex items-center justify-center transition shrink-0 disabled:opacity-40 disabled:pointer-events-none hover:bg-[#c9a227] hover:-translate-y-px"
             style={{ background: P.gold }}
           >
             <Send size={14} style={{ color: '#0d0d0d' }} />
@@ -315,25 +305,27 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const actionBtnClass =
+    'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 hover:bg-[rgba(245,200,66,0.12)] disabled:opacity-40';
+
   return (
     <div
-      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+      className={`flex animate-[cw-fadeUp_0.2s_ease] ${isOwn ? 'justify-end pr-2.5' : 'justify-start pl-2.5'}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
-      style={{ animation: 'cw-fadeUp 0.2s ease', paddingRight: isOwn ? '10px' : 0, paddingLeft: !isOwn ? '10px' : 0 }}
     >
       <div className={`max-w-sm lg:max-w-lg ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1.5`}>
 
         {message.replyTo && (
           <div
-            className="rounded-lg px-3 py-2 text-xs"
-            style={{ background: P.card, color: P.textMid, borderLeft: `2px solid ${P.gold}`, lineHeight: 1.5 }}
+            className="rounded-lg px-3 py-2 text-xs leading-[1.5]"
+            style={{ background: P.card, color: P.textMid, borderLeft: `2px solid ${P.gold}` }}
           >
             {message.replyTo.content}
           </div>
         )}
 
-        <div className="flex items-end gap-3.5" style={{ position: 'relative' }}>
+        <div className="flex items-end gap-3.5 relative">
           {!isOwn && (
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
@@ -345,13 +337,10 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
 
           {/* Own-message actions float to the left of the bubble, outside normal flow so they're never pushed off-screen */}
           {showActions && isOwn && (
-            <div
-              className="flex items-center gap-2"
-              style={{ position: 'absolute', right: '100%', bottom: 0, marginRight: '12px' }}
-            >
+            <div className="flex items-center gap-2 absolute right-full bottom-0 mr-3">
               <button
                 onClick={() => onReply(message)}
-                className="cw-action-btn w-9 h-9 rounded-full flex items-center justify-center"
+                className={actionBtnClass}
                 style={{ background: P.card, border: `1.5px solid ${P.borderHover}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
               >
                 <CornerUpLeft size={16} style={{ color: P.text }} />
@@ -360,7 +349,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
                 <button
                   onClick={handleConvert}
                   disabled={converting}
-                  className="cw-action-btn w-9 h-9 rounded-full flex items-center justify-center disabled:opacity-40"
+                  className={actionBtnClass}
                   style={{ background: P.card, border: `1.5px solid ${P.borderHover}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
                 >
                   <CheckSquare size={16} style={{ color: P.text }} />
@@ -383,18 +372,11 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
             {/* Image */}
             {isImage && (
               <a href={message.file.url} target="_blank" rel="noopener noreferrer">
-               <img
-  src={message.file.url}
-  alt={message.file.name}
-  className="cw-bubble-img rounded-2xl cursor-pointer transition"
-  style={{
-    width: "100%",
-    maxWidth: "320px",
-    height: "auto",
-    display: "block",
-    objectFit: "contain",
-  }}
-/>
+                <img
+                  src={message.file.url}
+                  alt={message.file.name}
+                  className="rounded-2xl cursor-pointer transition w-full max-w-[320px] h-auto block object-contain hover:opacity-90"
+                />
               </a>
             )}
 
@@ -403,8 +385,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
               <a href={message.file.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="cw-bubble-file flex items-center gap-3 transition"
-                style={{ padding: '14px 16px' }}
+                className="flex items-center gap-3 transition px-4 py-3.5 hover:opacity-85"
               >
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
@@ -414,20 +395,17 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold truncate text-sm">{message.file.name}</p>
-                  <p className="text-xs" style={{ opacity: 0.7 }}>{formatFileSize(message.file.size)}</p>
+                  <p className="text-xs opacity-70">{formatFileSize(message.file.size)}</p>
                 </div>
-                <Download size={16} className="shrink-0" style={{ opacity: 0.7 }} />
+                <Download size={16} className="shrink-0 opacity-70" />
               </a>
             )}
 
             {/* Text */}
             {message.content && (
               <p
-                className="font-medium"
+                className="font-medium px-[22px] py-4 leading-[1.65] break-words"
                 style={{
-                  padding: '16px 22px',
-                  lineHeight: 1.65,
-                  wordBreak: 'break-word',
                   overflowWrap: 'anywhere',
                   borderTop: (isImage || isFile) ? `1px solid ${isOwn ? 'rgba(13,13,13,0.15)' : P.border}` : 'none',
                   marginTop: (isImage || isFile) ? '2px' : 0,
@@ -440,13 +418,10 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
 
           {/* Other-user-message actions float to the right of the bubble, outside normal flow */}
           {showActions && !isOwn && (
-            <div
-              className="flex items-center gap-2"
-              style={{ position: 'absolute', left: '100%', bottom: 0, marginLeft: '12px' }}
-            >
+            <div className="flex items-center gap-2 absolute left-full bottom-0 ml-3">
               <button
                 onClick={() => onReply(message)}
-                className="cw-action-btn w-9 h-9 rounded-full flex items-center justify-center"
+                className={actionBtnClass}
                 style={{ background: P.card, border: `1.5px solid ${P.borderHover}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
               >
                 <CornerUpLeft size={16} style={{ color: P.text }} />
@@ -455,7 +430,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
                 <button
                   onClick={handleConvert}
                   disabled={converting}
-                  className="cw-action-btn w-9 h-9 rounded-full flex items-center justify-center disabled:opacity-40"
+                  className={actionBtnClass}
                   style={{ background: P.card, border: `1.5px solid ${P.borderHover}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
                 >
                   <CheckSquare size={16} style={{ color: P.text }} />
@@ -465,7 +440,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask }) {
           )}
         </div>
 
-        <p className="text-xs px-1" style={{ color: P.textDim, marginTop: '4px' }}>
+        <p className="text-xs px-1 mt-1" style={{ color: P.textDim }}>
           {message.createdAt
             ? formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })
             : ''}

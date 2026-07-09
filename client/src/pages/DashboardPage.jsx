@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckSquare, Clock, AlertCircle, Check,
-  LayoutDashboard, MessageSquare, LogOut,
+  MessageSquare, LogOut,
   TrendingUp, Calendar, ChevronRight, Zap
 } from 'lucide-react';
 import api from '../services/api';
@@ -87,85 +87,76 @@ export default function DashboardPage() {
     DONE:        { label: 'Done',        color: P.green,  bg: 'rgba(74,222,128,0.1)',   border: 'rgba(74,222,128,0.25)' },
   };
 
-  const s = (style) => style;
-
   return (
-    <div style={s({ minHeight:'100vh', background: P.bg, color: P.text, fontFamily: "'Inter', sans-serif" })}>
+    <div
+      className="min-h-screen font-sans"
+      style={{ background: P.bg, color: P.text, fontFamily: "'Inter', sans-serif" }}
+    >
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-        .task-row:hover { background: #1f1f1f !important; border-color: ${P.borderHover} !important; }
-        .filter-btn:hover { border-color: ${P.goldDim} !important; color: ${P.gold} !important; }
-        .nav-btn:hover { background: ${P.goldGlow} !important; color: ${P.gold} !important; border-color: ${P.border} !important; }
-        .logout-btn:hover { background: rgba(248,113,113,0.08) !important; color: ${P.red} !important; }
-        .status-btn:hover { opacity: 0.8; transform: scale(1.1); }
-        .go-chat:hover { background: ${P.goldDim} !important; }
       `}</style>
 
       {/* ── Header ── */}
-      <header style={s({
-        background: P.surface,
-        borderBottom: `1px solid ${P.border}`,
-        padding: '0 32px', height: '60px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        position: 'sticky', top: 0, zIndex: 50,
-      })}>
-        <div style={s({ display:'flex', alignItems:'center', gap:'12px' })}>
-          <div style={s({
-            width:'36px', height:'36px', borderRadius:'10px',
-            background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`,
-            display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-            boxShadow: `0 0 16px ${P.goldGlow}`
-          })}>
+      <header
+        className="px-4 sm:px-6 lg:px-8 h-[60px] flex items-center justify-between sticky top-0 z-50"
+        style={{ background: P.surface, borderBottom: `1px solid ${P.border}` }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            style={{ background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`, boxShadow: `0 0 16px ${P.goldGlow}` }}
+          >
             <Zap size={17} color="#0d0d0d" fill="#0d0d0d" />
           </div>
-          <div>
-            <div style={s({ fontWeight:800, fontSize:'15px', color: P.text, letterSpacing:'-0.3px' })}>WorkSpace</div>
-            <div style={s({ fontSize:'11px', color: P.textMid })}>Task Dashboard</div>
+          <div className="min-w-0">
+            <div className="font-extrabold text-[15px] whitespace-nowrap" style={{ color: P.text, letterSpacing: '-0.3px' }}>
+              WorkSpace
+            </div>
+            <div className="hidden sm:block text-[11px] whitespace-nowrap" style={{ color: P.textMid }}>
+              Task Dashboard
+            </div>
           </div>
         </div>
 
-        <div style={s({ display:'flex', alignItems:'center', gap:'8px' })}>
-          <div style={s({ display:'flex', alignItems:'center', gap:'8px', marginRight:'12px' })}>
-            <div style={s({
-              width:'30px', height:'30px', borderRadius:'50%',
-              background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:'12px', fontWeight:800, color:'#0d0d0d', flexShrink:0
-            })}>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mr-1 sm:mr-3">
+            <div
+              className="w-[30px] h-[30px] rounded-full flex items-center justify-center text-[12px] font-extrabold flex-shrink-0"
+              style={{ background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`, color: '#0d0d0d' }}
+            >
               {user.name?.charAt(0).toUpperCase()}
             </div>
-            <span style={s({ fontSize:'13px', color: P.textMid })}>{user.name}</span>
+            <span className="hidden sm:block text-[13px]" style={{ color: P.textMid }}>{user.name}</span>
           </div>
 
-          <button className="nav-btn" onClick={() => navigate('/')} style={s({
-            display:'flex', alignItems:'center', gap:'6px', padding:'6px 12px',
-            borderRadius:'8px', background:'transparent', border:`1px solid ${P.border}`,
-            color: P.textMid, fontSize:'12px', fontWeight:500, cursor:'pointer', transition:'all 0.15s'
-          })}>
-            <MessageSquare size={13} /> Chat
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:px-3 text-[12px] font-medium cursor-pointer transition-all hover:bg-[rgba(245,200,66,0.12)] hover:text-[#f5c842] hover:border-[#2a2218]"
+            style={{ background: 'transparent', border: `1px solid ${P.border}`, color: P.textMid }}
+          >
+            <MessageSquare size={13} /> <span className="hidden max-[380px]:hidden sm:inline">Chat</span>
           </button>
 
-          <button className="logout-btn" onClick={handleLogout} style={s({
-            display:'flex', alignItems:'center', gap:'6px', padding:'6px 12px',
-            borderRadius:'8px', background:'transparent', border:`1px solid ${P.border}`,
-            color: P.textMid, fontSize:'12px', fontWeight:500, cursor:'pointer', transition:'all 0.15s'
-          })}>
-            <LogOut size={13} /> Logout
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:px-3 text-[12px] font-medium cursor-pointer transition-all hover:bg-[rgba(248,113,113,0.08)] hover:text-[#f87171]"
+            style={{ background: 'transparent', border: `1px solid ${P.border}`, color: P.textMid }}
+          >
+            <LogOut size={13} /> <span className="hidden max-[380px]:hidden sm:inline">Logout</span>
           </button>
         </div>
       </header>
 
       {/* ── Body ── */}
-      <div style={s({ maxWidth:'1100px', margin:'0 auto', padding:'36px 32px 80px', width:'100%', boxSizing:'border-box' })}>
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-9 pb-16 sm:pb-20 max-w-[1100px] w-full box-border">
 
         {/* Greeting + ring */}
-        <div style={s({ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginBottom:'36px', flexWrap:'wrap', gap:'16px' })}>
+        <div className="mb-6 sm:mb-9 flex items-end justify-between flex-wrap gap-4">
           <div>
-            <h2 style={s({ fontSize:'26px', fontWeight:800, color: P.text, letterSpacing:'-0.5px', marginBottom:'6px' })}>
+            <h2 className="mb-1.5 text-2xl sm:text-[26px] font-extrabold" style={{ color: P.text, letterSpacing: '-0.5px' }}>
               Hey, {user.name?.split(' ')[0]} 👋
             </h2>
-            <p style={s({ fontSize:'14px', color: P.textMid })}>
+            <p className="text-sm" style={{ color: P.textMid }}>
               {stats.total === 0
                 ? 'No tasks yet — create one inside a conversation.'
                 : stats.pending + stats.inProgress === 0
@@ -175,9 +166,9 @@ export default function DashboardPage() {
           </div>
 
           {stats.total > 0 && (
-            <div style={s({ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px' })}>
-              <div style={s({ position:'relative', width:'60px', height:'60px' })}>
-                <svg viewBox="0 0 36 36" style={s({ width:'60px', height:'60px', transform:'rotate(-90deg)' })}>
+            <div className="flex flex-col items-center gap-1">
+              <div className="relative w-[60px] h-[60px]">
+                <svg viewBox="0 0 36 36" className="w-[60px] h-[60px]" style={{ transform: 'rotate(-90deg)' }}>
                   <circle cx="18" cy="18" r="16" fill="none" stroke={P.border} strokeWidth="3" />
                   <circle
                     cx="18" cy="18" r="16" fill="none"
@@ -188,20 +179,17 @@ export default function DashboardPage() {
                     style={{ transition: 'stroke-dashoffset 0.6s ease' }}
                   />
                 </svg>
-                <div style={s({
-                  position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:'12px', fontWeight:800, color: P.gold
-                })}>
+                <div className="absolute inset-0 flex items-center justify-center text-xs font-extrabold" style={{ color: P.gold }}>
                   {donePercent}%
                 </div>
               </div>
-              <span style={s({ fontSize:'10px', color: P.textMid, fontWeight:500 })}>Complete</span>
+              <span className="text-[10px] font-medium" style={{ color: P.textMid }}>Complete</span>
             </div>
           )}
         </div>
 
         {/* ── Stat cards ── */}
-        <div style={s({ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'12px', marginBottom:'28px' })}>
+        <div className="grid grid-cols-2 min-[480px]:grid-cols-3 lg:grid-cols-5 gap-2.5 lg:gap-3 mb-5 sm:mb-7">
           {[
             { label:'Total Tasks',  value: stats.total,      accent: P.gold,   icon: <TrendingUp size={15}/> },
             { label:'To Do',        value: stats.pending,    accent: P.slate,  icon: <CheckSquare size={15}/> },
@@ -209,102 +197,96 @@ export default function DashboardPage() {
             { label:'Done',         value: stats.done,       accent: P.green,  icon: <Check size={15}/> },
             { label:'Overdue',      value: stats.overdue,    accent: P.red,    icon: <AlertCircle size={15}/> },
           ].map(({ label, value, accent, icon }) => (
-            <div key={label} style={s({
-              background: P.card,
-              border: `1px solid ${P.border}`,
-              borderRadius:'14px', padding:'18px 16px',
-              display:'flex', flexDirection:'column', gap:'14px',
-              boxShadow: value > 0 ? `0 0 0 1px ${accent}15` : 'none',
-            })}>
-              <div style={s({ display:'flex', alignItems:'center', justifyContent:'space-between' })}>
-                <div style={s({
-                  width:'32px', height:'32px', borderRadius:'8px',
-                  background:`${accent}15`, display:'flex', alignItems:'center',
-                  justifyContent:'center', color: accent
-                })}>
+            <div
+              key={label}
+              className="px-3.5 py-4 sm:px-4 rounded-2xl flex flex-col gap-3.5"
+              style={{
+                background: P.card,
+                border: `1px solid ${P.border}`,
+                boxShadow: value > 0 ? `0 0 0 1px ${accent}15` : 'none',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: `${accent}15`, color: accent }}
+                >
                   {icon}
                 </div>
-                <span style={s({ fontSize:'30px', fontWeight:900, color: value > 0 ? P.text : P.textDim, lineHeight:1 })}>{value}</span>
+                <span className="text-[30px] font-black leading-none" style={{ color: value > 0 ? P.text : P.textDim }}>
+                  {value}
+                </span>
               </div>
-              <p style={s({ fontSize:'11px', fontWeight:600, color: accent, opacity: 0.75, textTransform:'uppercase', letterSpacing:'0.5px' })}>{label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide opacity-75" style={{ color: accent }}>
+                {label}
+              </p>
             </div>
           ))}
         </div>
 
         {/* ── Filter bar ── */}
-        <div style={s({ display:'flex', alignItems:'center', gap:'8px', marginBottom:'20px', flexWrap:'wrap' })}>
+        <div className="mb-4 sm:mb-5 flex items-center gap-2 flex-wrap">
           {filters.map(f => (
             <button
               key={f.key}
-              className={filter === f.key ? '' : 'filter-btn'}
               onClick={() => setFilter(f.key)}
-              style={s({
-                padding:'6px 14px', borderRadius:'8px', fontSize:'12px', fontWeight:500,
-                cursor:'pointer', transition:'all 0.15s',
+              className={`px-3 py-1.5 sm:px-3.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+                filter === f.key ? '' : 'hover:border-[#c9a227] hover:text-[#f5c842]'
+              }`}
+              style={{
                 background: filter === f.key ? P.gold : 'transparent',
                 border: `1px solid ${filter === f.key ? P.gold : P.border}`,
                 color: filter === f.key ? '#0d0d0d' : P.textMid,
-              })}
+              }}
             >
-              {f.label} <span style={{ opacity:0.6 }}>({f.count})</span>
+              {f.label} <span className="opacity-60">({f.count})</span>
             </button>
           ))}
           <button
-            className="filter-btn"
             onClick={loadTasks}
-            style={s({
-              marginLeft:'auto', padding:'6px 14px', borderRadius:'8px',
-              fontSize:'12px', fontWeight:500, cursor:'pointer', transition:'all 0.15s',
-              background:'transparent', border:`1px solid ${P.border}`, color: P.textMid,
-            })}
+            className="ml-auto px-3 py-1.5 sm:px-3.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:border-[#c9a227] hover:text-[#f5c842]"
+            style={{ background: 'transparent', border: `1px solid ${P.border}`, color: P.textMid }}
           >
             ↻ Refresh
           </button>
         </div>
 
         {/* ── Divider ── */}
-        <div style={s({ height:'1px', background:`linear-gradient(90deg, ${P.gold}40, transparent)`, marginBottom:'20px' })} />
+        <div className="mb-4 sm:mb-5 h-px" style={{ background: `linear-gradient(90deg, ${P.gold}40, transparent)` }} />
 
         {/* ── Task list ── */}
         {loading ? (
-          <div style={s({ display:'flex', justifyContent:'center', paddingTop:'80px' })}>
-            <div style={s({
-              width:'36px', height:'36px', borderRadius:'50%',
-              border:`3px solid ${P.gold}`, borderTopColor:'transparent',
-              animation:'spin 0.7s linear infinite'
-            })} />
+          <div className="pt-16 sm:pt-20 flex justify-center">
+            <div
+              className="w-9 h-9 rounded-full animate-spin"
+              style={{ border: `3px solid ${P.gold}`, borderTopColor: 'transparent' }}
+            />
           </div>
         ) : tasks.length === 0 ? (
-          <div style={s({
-            textAlign:'center', padding:'72px 24px',
-            background: P.card, borderRadius:'18px', border:`1px solid ${P.border}`,
-            animation:'fadeUp 0.4s ease'
-          })}>
-            <div style={s({
-              width:'60px', height:'60px', borderRadius:'16px',
-              background:`${P.gold}15`, display:'flex', alignItems:'center',
-              justifyContent:'center', margin:'0 auto 16px'
-            })}>
+          <div
+            className="px-4 sm:px-6 py-14 sm:py-16 text-center rounded-[18px] animate-[fadeUp_0.4s_ease]"
+            style={{ background: P.card, border: `1px solid ${P.border}` }}
+          >
+            <div
+              className="mx-auto mb-4 w-[60px] h-[60px] rounded-2xl flex items-center justify-center"
+              style={{ background: `${P.gold}15` }}
+            >
               <CheckSquare size={26} color={P.goldDim} />
             </div>
-            <p style={s({ fontSize:'16px', fontWeight:700, color: P.text, marginBottom:'6px' })}>No tasks here</p>
-            <p style={s({ fontSize:'13px', color: P.textMid, marginBottom:'24px' })}>
+            <p className="mb-1.5 text-base font-bold" style={{ color: P.text }}>No tasks here</p>
+            <p className="mb-6 text-[13px]" style={{ color: P.textMid }}>
               Head to a conversation and create your first task.
             </p>
             <button
-              className="go-chat"
               onClick={() => navigate('/')}
-              style={s({
-                padding:'9px 22px', borderRadius:'10px',
-                background: P.gold, color:'#0d0d0d', border:'none',
-                fontSize:'13px', fontWeight:700, cursor:'pointer', transition:'background 0.15s'
-              })}
+              className="px-5 py-2.5 rounded-[10px] text-[13px] font-bold cursor-pointer transition-colors hover:bg-[#c9a227]"
+              style={{ background: P.gold, color: '#0d0d0d', border: 'none' }}
             >
               Open Chat →
             </button>
           </div>
         ) : (
-          <div style={s({ display:'flex', flexDirection:'column', gap:'8px', animation:'fadeUp 0.3s ease' })}>
+          <div className="flex flex-col gap-2">
             {tasks.map((task, i) => {
               const cfg = statusCfg[task.status];
               const conversationName = task.conversation?.name ||
@@ -314,79 +296,76 @@ export default function DashboardPage() {
               return (
                 <div
                   key={task._id}
-                  className="task-row"
-                  style={s({
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 py-3 sm:px-5 sm:py-4 rounded-2xl transition-all animate-[fadeUp_0.3s_ease] hover:bg-[#1f1f1f]"
+                  style={{
                     background: P.card,
-                    borderRadius:'14px', padding:'16px 20px',
                     border: task.isOverdue ? `1px solid rgba(248,113,113,0.25)` : `1px solid ${P.border}`,
-                    display:'flex', alignItems:'center', gap:'16px',
-                    transition:'all 0.15s', cursor:'default',
-                    animation:`fadeUp 0.3s ease ${i * 0.04}s both`
-                  })}
+                    animationDelay: `${i * 0.04}s`,
+                    animationFillMode: 'both',
+                  }}
                 >
-                  {/* Status toggle */}
-                  <button
-                    className="status-btn"
-                    onClick={() => handleStatusUpdate(task)}
-                    title="Click to change status"
-                    style={s({
-                      width:'22px', height:'22px', borderRadius:'50%',
-                      border:`2px solid ${cfg.color}`,
-                      background: task.status !== 'PENDING' ? cfg.bg : 'transparent',
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                      cursor:'pointer', flexShrink:0, transition:'all 0.15s'
-                    })}
-                  >
-                    {task.status === 'DONE' && <Check size={11} color={P.green} />}
-                    {task.status === 'IN_PROGRESS' && (
-                      <div style={s({ width:'8px', height:'8px', borderRadius:'50%', background: P.yellow })} />
-                    )}
-                  </button>
+                  {/* Row 1 on mobile: status toggle + title/meta */}
+                  <div className="flex items-center gap-3 min-w-0 sm:contents">
+                    <button
+                      onClick={() => handleStatusUpdate(task)}
+                      title="Click to change status"
+                      className="w-[22px] h-[22px] rounded-full flex items-center justify-center flex-shrink-0 cursor-pointer transition-all hover:opacity-80 hover:scale-110"
+                      style={{
+                        border: `2px solid ${cfg.color}`,
+                        background: task.status !== 'PENDING' ? cfg.bg : 'transparent',
+                      }}
+                    >
+                      {task.status === 'DONE' && <Check size={11} color={P.green} />}
+                      {task.status === 'IN_PROGRESS' && (
+                        <div className="w-2 h-2 rounded-full" style={{ background: P.yellow }} />
+                      )}
+                    </button>
 
-                  {/* Title + meta */}
-                  <div style={s({ flex:1, minWidth:0 })}>
-                    <p style={s({
-                      fontSize:'14px', fontWeight:500, lineHeight:1.4,
-                      color: task.status === 'DONE' ? P.textDim : P.text,
-                      textDecoration: task.status === 'DONE' ? 'line-through' : 'none',
-                      marginBottom:'5px'
-                    })}>
-                      {task.title}
-                    </p>
-                    <div style={s({ display:'flex', alignItems:'center', gap:'14px', flexWrap:'wrap' })}>
-                      <span style={s({ fontSize:'11px', color: P.textMid, display:'flex', alignItems:'center', gap:'4px' })}>
-                        <MessageSquare size={10} /> {conversationName}
-                      </span>
-                      {task.dueDate && (
-                        <span style={s({
-                          fontSize:'11px', display:'flex', alignItems:'center', gap:'4px',
-                          color: task.isOverdue ? P.red : P.textMid, fontWeight: task.isOverdue ? 600 : 400
-                        })}>
-                          <Calendar size={10} />
-                          {task.isOverdue ? '⚠ ' : ''}{format(new Date(task.dueDate), 'MMM d, yyyy')}
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="mb-1 text-sm font-medium leading-snug truncate"
+                        style={{
+                          color: task.status === 'DONE' ? P.textDim : P.text,
+                          textDecoration: task.status === 'DONE' ? 'line-through' : 'none',
+                        }}
+                      >
+                        {task.title}
+                      </p>
+                      <div className="flex items-center gap-3.5 flex-wrap">
+                        <span className="text-[11px] flex items-center gap-1" style={{ color: P.textMid }}>
+                          <MessageSquare size={10} /> {conversationName}
                         </span>
-                      )}
-                      {task.assignedTo && (
-                        <span style={s({ fontSize:'11px', color: P.textMid })}>👤 {task.assignedTo.name}</span>
-                      )}
-                      <span style={s({ fontSize:'11px', color: P.textDim })}>
-                        {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
-                      </span>
+                        {task.dueDate && (
+                          <span
+                            className="text-[11px] flex items-center gap-1"
+                            style={{ color: task.isOverdue ? P.red : P.textMid, fontWeight: task.isOverdue ? 600 : 400 }}
+                          >
+                            <Calendar size={10} />
+                            {task.isOverdue ? '⚠ ' : ''}{format(new Date(task.dueDate), 'MMM d, yyyy')}
+                          </span>
+                        )}
+                        {task.assignedTo && (
+                          <span className="text-[11px]" style={{ color: P.textMid }}>👤 {task.assignedTo.name}</span>
+                        )}
+                        <span className="text-[11px]" style={{ color: P.textDim }}>
+                          {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Status badge */}
-                  <div style={s({
-                    display:'flex', alignItems:'center', gap:'6px',
-                    padding:'4px 10px', borderRadius:'20px', flexShrink:0,
-                    fontSize:'11px', fontWeight:600,
-                    background: cfg.bg, color: cfg.color, border:`1px solid ${cfg.border}`
-                  })}>
-                    <div style={s({ width:'6px', height:'6px', borderRadius:'50%', background: cfg.color })} />
-                    {cfg.label}
-                  </div>
+                  {/* Row 2 on mobile: status badge + chevron, own line so it never overlaps the title */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 sm:contents">
+                    <div
+                      className="px-2.5 py-1 flex items-center gap-1.5 rounded-full flex-shrink-0 text-[11px] font-semibold"
+                      style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.color }} />
+                      {cfg.label}
+                    </div>
 
-                  <ChevronRight size={14} color={P.textDim} style={{ flexShrink:0 }} />
+                    <ChevronRight size={14} color={P.textDim} className="flex-shrink-0" />
+                  </div>
                 </div>
               );
             })}
