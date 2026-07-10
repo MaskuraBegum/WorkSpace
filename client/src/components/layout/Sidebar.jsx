@@ -3,9 +3,9 @@ import { Search, Plus, LogOut, MessageSquare, LayoutDashboard } from 'lucide-rea
 import useAuthStore from '../../store/authStore';
 import useChatStore from '../../store/chatStore';
 import { disconnectSocket } from '../../services/socket';
-import api from '../../services/api';
 import ConversationItem from '../chat/ConversationItem';
 import NewChatModal from '../chat/NewChatModal';
+import ProfilePanel from '../profile/ProfilePanel';
 import { useNavigate } from 'react-router-dom';
 import { P } from '../../theme';
 
@@ -14,6 +14,7 @@ export default function Sidebar() {
   const { conversations, activeConversation, setActiveConversation } = useChatStore();
   const [search, setSearch] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -86,47 +87,89 @@ export default function Sidebar() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full text-[13px] py-[9px] pr-3.5 pl-9 rounded-[10px] outline-none transition-colors duration-150 box-border focus:border-[#f5c842]"
+            className="w-full text-[13px] py-[9px] pr-3.5 pl-9 rounded-[10px] outline-none transition-colors duration-150 focus:border-[#f5c842]"
             style={{ background: P.card, color: P.text, border: `1px solid ${P.border}` }}
           />
         </div>
       </div>
 
-      {/* User info */}
-      <div
-        className="px-4 py-3 flex items-center gap-2.5"
-        style={{ borderBottom: `1px solid ${P.border}`, background: 'rgba(0,0,0,0.15)' }}
+      {/* User profile card — clickable */}
+      <button
+        onClick={() => setShowProfile(true)}
+        className="w-full px-4 py-3 flex items-center gap-3 text-left transition-all duration-150 group"
+        style={{
+          borderBottom: `1px solid ${P.border}`,
+          background: 'rgba(0,0,0,0.15)',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,200,66,0.05)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.15)'}
       >
-        <div
-          className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[13px] font-extrabold"
-          style={{ background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`, color: '#0d0d0d' }}
-        >
-          {user.name?.charAt(0).toUpperCase()}
+        {/* Avatar */}
+        <div className="relative flex-shrink-0">
+          <div
+            className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-[13px] font-extrabold"
+            style={{ border: `2px solid ${P.gold}` }}
+          >
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              <div
+                className="w-full h-full flex items-center justify-center text-[13px] font-extrabold"
+                style={{ background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`, color: '#0d0d0d' }}
+              >
+                {user.name?.charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+          {/* Online dot */}
+          <div
+            className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2"
+            style={{ background: '#4ade80', borderColor: P.surface, boxShadow: '0 0 6px rgba(74,222,128,0.6)' }}
+          />
         </div>
-        <div className="min-w-0">
-          <p className="text-[13px] font-semibold m-0 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: P.text }}>
+
+        {/* Name + hint */}
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold truncate leading-tight" style={{ color: P.text }}>
             {user.name}
           </p>
-          <p className="text-[11px] m-0 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: P.textMid }}>
+          <p className="text-[11px] truncate leading-tight mt-0.5 transition-colors duration-150"
+            style={{ color: P.textMid }}
+          >
             {user.email}
           </p>
         </div>
+
+        {/* Edit hint */}
+        <span
+          className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+          style={{ background: P.goldGlow, color: P.goldDim, border: `1px solid rgba(245,200,66,0.2)` }}
+        >
+          <span className='text-lg'>⚙︎</span>
+        </span>
+      </button>
+
+      {/* Section label */}
+      <div className="px-4 pt-3 pb-1 flex-shrink-0">
+        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: P.textMid }}>
+          Conversations
+        </span>
       </div>
 
       {/* Conversations list */}
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="px-4 py-10 text-center">
-            <p className="text-[13px] m-0" style={{ color: P.textMid }}>
+            <p className="text-[13px]" style={{ color: P.textMid }}>
               {search ? 'No conversations found' : 'No conversations yet'}
             </p>
             {!search && (
               <button
                 onClick={() => setShowNewChat(true)}
-                className="mt-2.5 bg-transparent border-0 text-[13px] font-semibold cursor-pointer transition-colors duration-150 hover:text-[#f5c842]"
+                className="mt-2.5 text-[13px] font-semibold cursor-pointer transition-colors duration-150 hover:text-[#f5c842] bg-transparent border-0"
                 style={{ color: P.goldDim }}
               >
-                Start a conversation
+                Start a conversation →
               </button>
             )}
           </div>
@@ -143,6 +186,7 @@ export default function Sidebar() {
       </div>
 
       {showNewChat && <NewChatModal onClose={() => setShowNewChat(false)} />}
+      {showProfile && <ProfilePanel onClose={() => setShowProfile(false)} />}
     </div>
   );
 }

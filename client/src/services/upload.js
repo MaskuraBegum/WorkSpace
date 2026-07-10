@@ -2,20 +2,34 @@ export const uploadToCloudinary = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+  formData.append('quality', 'auto:best');
+  formData.append('fetch_format', 'auto');
+
+  // For avatars — don't resize, keep original quality
+  if (file.type.startsWith('image/')) {
+    formData.append('flags', 'preserve_transparency');
+  }
+
+  const resourceType = file.type.startsWith('image/') ? 'image' : 'auto';
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/auto/upload`,
-    {
-      method: 'POST',
-      body: formData
-    }
+    `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+    { method: 'POST', body: formData }
   );
 
   if (!response.ok) throw new Error('Upload failed');
 
   const data = await response.json();
+
+  // For images — request highest quality URL
+  let url = data.secure_url;
+  if (file.type.startsWith('image/')) {
+    // Remove any auto transformations Cloudinary adds
+    url = data.secure_url.replace('/upload/', '/upload/q_100,f_auto/');
+  }
+
   return {
-    url: data.secure_url,
+    url,
     name: file.name,
     type: file.type,
     size: file.size

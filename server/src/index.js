@@ -17,6 +17,7 @@ import taskRoutes from './routes/taskRoutes.js';
 import noteRoutes from './routes/noteRoutes.js';
 import initSocket from './socket/index.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
 
 dotenv.config();
 
@@ -68,6 +69,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/notes', noteRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Start server
 const PORT = process.env.PORT || 5000;
