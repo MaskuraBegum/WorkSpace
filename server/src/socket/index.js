@@ -78,6 +78,21 @@ const initSocket = (io) => {
 
         io.to(conversationId).emit('message:received', populated);
         console.log('✅ Emitted message:received to room');
+        // Notify members who might not have this conversation in their list yet
+conversation.members.forEach(async (memberId) => {
+  if (memberId.toString() !== senderId) {
+    await redis.del(`conversations:${memberId}`);
+    const memberSocketId = await redis.get(`online:${memberId}`);
+    if (memberSocketId) {
+      // Send full conversation data so they can add it to sidebar
+      const fullConversation = await Conversation.findById(conversationId)
+        .populate('members', '-password')
+        .populate('lastMessage')
+        .lean();
+      io.to(memberSocketId).emit('conversation:new', fullConversation);
+    }
+  }
+});
 
         conversation.members.forEach(async (memberId) => {
           if (memberId.toString() !== senderId) {

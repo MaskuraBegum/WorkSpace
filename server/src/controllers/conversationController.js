@@ -1,14 +1,13 @@
 import Conversation from '../models/Conversation.js';
-import Message from '../models/Message.js';
 import User from '../models/User.js';
 import redis from '../config/redis.js';
+import { io } from '../index.js';
 
 // Get all conversations for logged in user
 export const getConversations = async (req, res) => {
   try {
     const cacheKey = `conversations:${req.user._id}`;
 
-    // Check Redis cache first
     const cached = await redis.get(cacheKey);
     if (cached) {
       return res.json(JSON.parse(cached));
@@ -22,9 +21,7 @@ export const getConversations = async (req, res) => {
       .sort({ updatedAt: -1 })
       .lean();
 
-    // Cache for 30 seconds
     await redis.setex(cacheKey, 30, JSON.stringify(conversations));
-
     res.json(conversations);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -50,11 +47,17 @@ export const createConversation = async (req, res) => {
       createdBy: req.user._id
     });
 
-    // Invalidate cache for both users
     await redis.del(`conversations:${req.user._id}`);
     await redis.del(`conversations:${userId}`);
 
     const populated = await conversation.populate('members', '-password');
+
+    // Notify the other user in real-time
+    const otherUserSocketId = await redis.get(`online:${userId}`);
+    if (otherUserSocketId) {
+      io.to(otherUserSocketId).emit('conversation:new', populated);
+    }
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -79,10 +82,19 @@ export const createGroup = async (req, res) => {
       createdBy: req.user._id
     });
 
-    // Invalidate cache for all members
     await Promise.all(allMembers.map(id => redis.del(`conversations:${id}`)));
 
     const populated = await conversation.populate('members', '-password');
+
+    // Notify all members in real-time
+    for (const memberId of allMembers) {
+      if (memberId.toString() === req.user._id.toString()) continue;
+      const socketId = await redis.get(`online:${memberId}`);
+      if (socketId) {
+        io.to(socketId).emit('conversation:new', populated);
+      }
+    }
+
     res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: error.message });
