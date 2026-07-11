@@ -93,6 +93,8 @@ export const markAsRead = async (req, res) => {
   }
 };
 
+
+
 // Convert message to task
 export const convertToTask = async (req, res) => {
   try {
@@ -138,6 +140,29 @@ export const convertToTask = async (req, res) => {
     ]);
 
     res.status(201).json(populated);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Delete message
+export const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    // Only sender can delete
+    if (message.sender.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this message' });
+    }
+
+    await Message.findByIdAndDelete(messageId);
+
+    res.json({ message: 'Message deleted', messageId });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

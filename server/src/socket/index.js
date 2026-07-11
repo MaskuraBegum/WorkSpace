@@ -26,6 +26,11 @@ const initSocket = (io) => {
       console.log(`✅ Socket ${socket.id} joined room ${conversationId}`);
     });
 
+    // Delete message
+    socket.on('message:delete', ({ messageId, conversationId }) => {
+      io.to(conversationId).emit('message:deleted', { messageId });
+    });
+
     // Leave a conversation room
     socket.on('conversation:leave', (conversationId) => {
       socket.leave(conversationId);
@@ -139,14 +144,14 @@ const initSocket = (io) => {
       socket.to(conversationId).emit('note:link_removed', { linkId });
     });
     // Doc saved in notes
-socket.on('note:doc_add', ({ conversationId, doc }) => {
-  socket.to(conversationId).emit('note:doc_added', { doc });
-});
+    socket.on('note:doc_add', ({ conversationId, doc }) => {
+      socket.to(conversationId).emit('note:doc_added', { doc });
+    });
 
-// Doc removed from notes
-socket.on('note:doc_remove', ({ conversationId, docId }) => {
-  socket.to(conversationId).emit('note:doc_removed', { docId });
-});
+    // Doc removed from notes
+    socket.on('note:doc_remove', ({ conversationId, docId }) => {
+      socket.to(conversationId).emit('note:doc_removed', { docId });
+    });
 
     // Disconnect
     socket.on('disconnect', async () => {

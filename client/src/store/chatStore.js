@@ -57,6 +57,9 @@ const useChatStore = create((set, get) => ({
   removeTask: (taskId) => set((state) => ({
     tasks: state.tasks.filter(t => t._id !== taskId)
   })),
+  removeMessage: (messageId) => set((state) => ({
+    messages: state.messages.filter(m => m._id !== messageId)
+  })),
 }));
 
 export default useChatStore;
