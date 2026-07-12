@@ -209,6 +209,61 @@ export default function ChatWindow() {
         </div>
       </div>
 
+      {/* Pending request banner — shown to recipient only */}
+      {activeConversation?.status === 'pending' && (() => {
+        const isCreator = activeConversation?.createdBy === user._id ||
+          activeConversation?.createdBy?._id === user._id;
+        return !isCreator ? (
+          <div
+            className="px-6 py-3 flex items-center justify-between shrink-0"
+            style={{ background: 'rgba(245,200,66,0.06)', borderBottom: `1px solid rgba(245,200,66,0.15)` }}
+          >
+            <p className="text-[12px] font-medium" style={{ color: P.textMid }}>
+              Accept this request to reply
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const { data } = await api.put(`/conversations/${activeConversation._id}/decline`);
+                    const { removeConversation } = useChatStore.getState();
+                    removeConversation(activeConversation._id);
+                    toast.success('Request declined');
+                  } catch { toast.error('Failed'); }
+                }}
+                className="text-[11px] font-semibold px-3 py-1.5 rounded-lg transition"
+                style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+              >
+                Decline
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const { data } = await api.put(`/conversations/${activeConversation._id}/accept`);
+                    const { updateConversation } = useChatStore.getState();
+                    updateConversation(data);
+                    toast.success('Request accepted!');
+                  } catch { toast.error('Failed'); }
+                }}
+                className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition"
+                style={{ background: P.gold, color: '#0d0d0d' }}
+              >
+                Accept & Chat
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="px-6 py-2.5 shrink-0 text-center"
+            style={{ background: 'rgba(245,200,66,0.04)', borderBottom: `1px solid rgba(245,200,66,0.1)` }}
+          >
+            <p className="text-[11px]" style={{ color: P.textMid }}>
+              Waiting for {other?.name} to accept your request
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Messages */}
       <div
         className="flex-1 overflow-y-auto overflow-x-hidden space-y-6 px-6 py-5"

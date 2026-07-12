@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Search, Plus, LogOut, MessageSquare, LayoutDashboard } from 'lucide-react';
+import { Search, Plus, LogOut, MessageSquare, LayoutDashboard, Bell } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useChatStore from '../../store/chatStore';
 import { disconnectSocket } from '../../services/socket';
 import ConversationItem from '../chat/ConversationItem';
 import NewChatModal from '../chat/NewChatModal';
 import ProfilePanel from '../profile/ProfilePanel';
+import MessageRequestCard from '../chat/MessageRequestCard';
 import { useNavigate } from 'react-router-dom';
 import { P } from '../../theme';
 
@@ -15,6 +16,7 @@ export default function Sidebar() {
   const [search, setSearch] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showRequests, setShowRequests] = useState(true);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -23,7 +25,20 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  const filtered = conversations.filter(c => {
+  // Split conversations into requests and active
+  const requests = conversations.filter(c => {
+    const isCreator = c.createdBy === user._id || c.createdBy?._id === user._id;
+    return c.status === 'pending' && !isCreator;
+  });
+
+  const activeConversations = conversations.filter(c => {
+    const isCreator = c.createdBy === user._id || c.createdBy?._id === user._id;
+    if (c.status === 'pending' && !isCreator) return false;
+    if (c.status === 'declined') return false;
+    return true;
+  });
+
+  const filtered = activeConversations.filter(c => {
     const other = c.members?.find(m => m._id !== user._id);
     const name = c.isGroup ? c.name : other?.name || '';
     return name.toLowerCase().includes(search.toLowerCase());
@@ -93,18 +108,14 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* User profile card — clickable */}
+      {/* User profile card */}
       <button
         onClick={() => setShowProfile(true)}
         className="w-full px-4 py-3 flex items-center gap-3 text-left transition-all duration-150 group"
-        style={{
-          borderBottom: `1px solid ${P.border}`,
-          background: 'rgba(0,0,0,0.15)',
-        }}
+        style={{ borderBottom: `1px solid ${P.border}`, background: 'rgba(0,0,0,0.15)' }}
         onMouseEnter={e => e.currentTarget.style.background = 'rgba(245,200,66,0.05)'}
         onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.15)'}
       >
-        {/* Avatar */}
         <div className="relative flex-shrink-0">
           <div
             className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center text-[13px] font-extrabold"
@@ -121,26 +132,19 @@ export default function Sidebar() {
               </div>
             )}
           </div>
-          {/* Online dot */}
           <div
             className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2"
             style={{ background: '#4ade80', borderColor: P.surface, boxShadow: '0 0 6px rgba(74,222,128,0.6)' }}
           />
         </div>
-
-        {/* Name + hint */}
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold truncate leading-tight" style={{ color: P.text }}>
             {user.name}
           </p>
-          <p className="text-[11px] truncate leading-tight mt-0.5 transition-colors duration-150"
-            style={{ color: P.textMid }}
-          >
+          <p className="text-[11px] truncate leading-tight mt-0.5" style={{ color: P.textMid }}>
             {user.email}
           </p>
         </div>
-
-        {/* Edit hint */}
         <span
           className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
           style={{ background: P.goldGlow, color: P.goldDim, border: `1px solid rgba(245,200,66,0.2)` }}
@@ -149,15 +153,56 @@ export default function Sidebar() {
         </span>
       </button>
 
-      {/* Section label */}
-      <div className="px-4 pt-3 pb-1 flex-shrink-0">
-        <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: P.textMid }}>
-          Conversations
-        </span>
-      </div>
-
-      {/* Conversations list */}
+      {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
+
+        {/* Message Requests section */}
+        {requests.length > 0 && (
+          <div style={{ borderBottom: `1px solid ${P.border}` }}>
+            {/* Section header */}
+            <button
+              onClick={() => setShowRequests(!showRequests)}
+              className="w-full px-4 pt-3 pb-2 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <Bell size={12} style={{ color: P.gold }} />
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: P.gold }}>
+                  Message Requests
+                </span>
+                <span
+                  className="text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+                  style={{ background: P.gold, color: '#0d0d0d' }}
+                >
+                  {requests.length}
+                </span>
+              </div>
+              <span className="text-[10px]" style={{ color: P.textMid }}>
+                {showRequests ? '▲' : '▼'}
+              </span>
+            </button>
+
+            {/* Request cards */}
+            {showRequests && (
+              <div className="px-3 pb-3 space-y-2">
+                {requests.map(conversation => (
+                  <MessageRequestCard
+                    key={conversation._id}
+                    conversation={conversation}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Active conversations section label */}
+        <div className="px-4 pt-3 pb-1 flex-shrink-0">
+          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: P.textMid }}>
+            Conversations
+          </span>
+        </div>
+
+        {/* Conversations list */}
         {filtered.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <p className="text-[13px]" style={{ color: P.textMid }}>
