@@ -242,9 +242,13 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
               {confirmDelete ? 'Delete this chat?' : lastMsg}
             </p>
 
-            {unreadCount > 0 && !confirmDelete && (
-              <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0"
-                style={{ background: P.gold, color: '#0d0d0d' }}>
+            {unreadCount > 0 && (
+              <span 
+                className={`text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 transition-opacity duration-150 ${
+                  confirmDelete || showDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                }`}
+                style={{ background: P.gold, color: '#0d0d0d' }}
+              >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
