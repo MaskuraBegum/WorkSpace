@@ -139,6 +139,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
 
       {/* Info Container */}
       <div className="flex-1 min-w-0">
+        {/* Top Line: Name and Time / Delete Trigger */}
         <div className="flex items-center justify-between gap-2 mb-1">
           <p
             className="text-[14px] font-bold whitespace-nowrap overflow-hidden text-ellipsis flex-1"
@@ -147,20 +148,14 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
             {name}
           </p>
 
-          {/* Dynamic Action/Meta Slot */}
+          {/* Action / Meta Slot */}
           {!needsAcceptance && (
             <div className="flex items-center justify-end h-5 min-w-[50px] relative">
               
-              {/* Normal Meta Stats: Invisible when hovering OR confirming deletion */}
-              <div className={`flex items-center gap-1.5 transition-opacity duration-150 ${
+              {/* Timestamp: Hidden when hover options or deletions are actively confirming */}
+              <div className={`transition-opacity duration-150 ${
                 confirmDelete || showDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
               }`}>
-                {unreadCount > 0 && (
-                  <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-                    style={{ background: P.gold, color: '#0d0d0d' }}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
                 {time && (
                   <span className="text-[11px] font-medium whitespace-nowrap" style={{ color: P.textDim }}>
                     {time}
@@ -168,7 +163,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
                 )}
               </div>
 
-              {/* Delete Trigger Button (Trash Can) - Shows only if not confirming yet */}
+              {/* Delete Trigger Button (Trash Can) */}
               {!confirmDelete && (
                 <button
                   onClick={handleDeleteTrigger}
@@ -184,7 +179,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
                 </button>
               )}
 
-              {/* Inline Confirm UI - Slides/fades into view when trash icon is clicked */}
+              {/* Inline Confirm UI */}
               {confirmDelete && (
                 <div className="absolute right-0 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
                   <button
@@ -213,7 +208,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
           )}
         </div>
 
-        {/* Last message OR request actions */}
+        {/* Bottom Line: Last message OR request actions AND Unread Badge */}
         {needsAcceptance ? (
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[11px] font-semibold text-red-400">Message request</span>
@@ -237,14 +232,23 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
             </button>
           </div>
         ) : (
-          <p
-            className={`text-[12.5px] font-medium leading-[1.45] whitespace-nowrap overflow-hidden text-ellipsis transition-opacity ${
-              confirmDelete ? 'opacity-30' : 'opacity-100'
-            } ${unreadCount > 0 ? 'font-semibold' : ''}`}
-            style={{ color: unreadCount > 0 ? P.textMid : P.textDim }}
-          >
-            {confirmDelete ? 'Delete this chat?' : lastMsg}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p
+              className={`text-[12.5px] font-medium leading-[1.45] whitespace-nowrap overflow-hidden text-ellipsis flex-1 transition-opacity ${
+                confirmDelete ? 'opacity-30' : 'opacity-100'
+              } ${unreadCount > 0 ? 'font-semibold' : ''}`}
+              style={{ color: unreadCount > 0 ? P.textMid : P.textDim }}
+            >
+              {confirmDelete ? 'Delete this chat?' : lastMsg}
+            </p>
+
+            {unreadCount > 0 && !confirmDelete && (
+              <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0"
+                style={{ background: P.gold, color: '#0d0d0d' }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </div>
