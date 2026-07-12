@@ -11,10 +11,8 @@ const initSocket = (io) => {
     socket.on('user:online', async (userId) => {
       await redis.set(`online:${userId}`, socket.id, 'EX', 3600);
       socket.userId = userId;
-
       io.emit('user:status', { userId, status: 'online' });
       await User.findByIdAndUpdate(userId, { lastSeen: new Date() });
-
       const onlineKeys = await redis.keys('online:*');
       const onlineUserIds = onlineKeys.map(key => key.replace('online:', ''));
       socket.emit('users:online', onlineUserIds);
@@ -24,11 +22,6 @@ const initSocket = (io) => {
     socket.on('conversation:join', (conversationId) => {
       socket.join(conversationId);
       console.log(`✅ Socket ${socket.id} joined room ${conversationId}`);
-    });
-
-    // Delete message
-    socket.on('message:delete', ({ messageId, conversationId }) => {
-      io.to(conversationId).emit('message:deleted', { messageId });
     });
 
     // Leave a conversation room
@@ -53,6 +46,15 @@ const initSocket = (io) => {
           return;
         }
 
+        // Block messages in pending conversations
+        if (conversation.status === 'pending') {
+          const isCreator = conversation.createdBy.toString() === senderId;
+          if (!isCreator) {
+            socket.emit('error', { message: 'Accept the request first to reply' });
+            return;
+          }
+        }
+
         const message = await Message.create({
           conversation: conversationId,
           sender: senderId,
@@ -60,10 +62,23 @@ const initSocket = (io) => {
           replyTo: replyToId || null
         });
 
+        // Update last message
         await Conversation.findByIdAndUpdate(conversationId, {
           lastMessage: message._id
         });
 
+        // Increment unread count for all members except sender
+        const unreadUpdates = {};
+        conversation.members.forEach(memberId => {
+          if (memberId.toString() !== senderId) {
+            unreadUpdates[`unreadCounts.${memberId}`] = 1;
+          }
+        });
+        await Conversation.findByIdAndUpdate(conversationId, {
+          $inc: unreadUpdates
+        });
+
+        // Invalidate cache
         await Promise.all(
           conversation.members.map(id => redis.del(`conversations:${id}`))
         );
@@ -76,49 +91,52 @@ const initSocket = (io) => {
         const sockets = await io.in(conversationId).fetchSockets();
         console.log(`🏠 Room ${conversationId} has ${sockets.length} sockets`);
 
+        // Send message to everyone in room
         io.to(conversationId).emit('message:received', populated);
         console.log('✅ Emitted message:received to room');
-        // Notify members who might not have this conversation in their list yet
-conversation.members.forEach(async (memberId) => {
-  if (memberId.toString() !== senderId) {
-    await redis.del(`conversations:${memberId}`);
-    const memberSocketId = await redis.get(`online:${memberId}`);
-    if (memberSocketId) {
-      // Send full conversation data so they can add it to sidebar
-      const fullConversation = await Conversation.findById(conversationId)
-        .populate('members', '-password')
-        .populate('lastMessage')
-        .lean();
-      io.to(memberSocketId).emit('conversation:new', fullConversation);
-    }
-  }
-});
 
-        conversation.members.forEach(async (memberId) => {
-          if (memberId.toString() !== senderId) {
-            const memberSocketId = await redis.get(`online:${memberId}`);
-            if (memberSocketId) {
-              io.to(memberSocketId).emit('notification:new', {
-                type: 'NEW_MESSAGE',
-                conversationId,
-                message: populated
-              });
-            }
+        // Notify other members — update their sidebar conversation
+        for (const memberId of conversation.members) {
+          if (memberId.toString() === senderId) continue;
+
+          await redis.del(`conversations:${memberId}`);
+          const memberSocketId = await redis.get(`online:${memberId}`);
+
+          if (memberSocketId) {
+            const fullConversation = await Conversation.findById(conversationId)
+              .populate('members', '-password')
+              .populate('lastMessage')
+              .lean();
+
+            io.to(memberSocketId).emit('conversation:new', fullConversation);
+            io.to(memberSocketId).emit('notification:new', {
+              type: 'NEW_MESSAGE',
+              conversationId,
+              message: populated
+            });
           }
-        });
+        }
       } catch (error) {
         console.error('Message send error:', error);
       }
     });
 
+    // Delete message
+    socket.on('message:delete', ({ messageId, conversationId }) => {
+      io.to(conversationId).emit('message:deleted', { messageId });
+    });
+
+    // Broadcast pre-saved message to room
+    socket.on('message:broadcast', ({ conversationId, message }) => {
+      io.to(conversationId).emit('message:received', message);
+    });
+
     // Typing indicators
     socket.on('typing:start', ({ conversationId, userId, userName }) => {
-      console.log('Typing start from:', userId, 'in room:', conversationId);
       socket.to(conversationId).emit('typing:start', { userId, userName, conversationId });
     });
 
     socket.on('typing:stop', ({ conversationId, userId }) => {
-      console.log('Typing stop from:', userId);
       socket.to(conversationId).emit('typing:stop', { userId, conversationId });
     });
 
@@ -132,16 +150,16 @@ conversation.members.forEach(async (memberId) => {
         },
         { isRead: true }
       );
+      // Reset unread count in conversation
+      await Conversation.findByIdAndUpdate(conversationId, {
+        [`unreadCounts.${userId}`]: 0
+      });
       socket.to(conversationId).emit('messages:read', { conversationId, userId });
     });
 
     // Real-time note update
     socket.on('note:update', ({ conversationId, content, userId }) => {
-      socket.to(conversationId).emit('note:updated', {
-        conversationId,
-        content,
-        updatedBy: userId
-      });
+      socket.to(conversationId).emit('note:updated', { conversationId, content, updatedBy: userId });
     });
 
     // Real-time task update
@@ -158,6 +176,7 @@ conversation.members.forEach(async (memberId) => {
     socket.on('note:link_remove', ({ conversationId, linkId }) => {
       socket.to(conversationId).emit('note:link_removed', { linkId });
     });
+
     // Doc saved in notes
     socket.on('note:doc_add', ({ conversationId, doc }) => {
       socket.to(conversationId).emit('note:doc_added', { doc });

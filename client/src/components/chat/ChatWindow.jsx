@@ -16,7 +16,7 @@ export default function ChatWindow() {
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
-  const { activeConversation, messages, setMessages, typingUsers, addMessage, addTask, removeMessage } = useChatStore();
+  const { activeConversation, messages, setMessages, typingUsers, addMessage, addTask, removeMessage, markConversationRead } = useChatStore();
 
   const other = activeConversation?.members?.find(m => m._id !== user._id);
   const name = activeConversation?.isGroup ? activeConversation.name : other?.name;
@@ -32,6 +32,9 @@ export default function ChatWindow() {
       try {
         const { data } = await api.get(`/messages/${activeConversation._id}`);
         setMessages(data);
+        // Mark as read via API
+        await api.put(`/conversations/${activeConversation._id}/read`);
+        markConversationRead(activeConversation._id)
         socket?.emit('messages:read', {
           conversationId: activeConversation._id,
           userId: user._id
@@ -435,8 +438,8 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
             )}
 
             {isFile && (
-              
-                <a href={message.file.url}
+
+              <a href={message.file.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 transition px-4 py-3.5 hover:opacity-85"

@@ -1,25 +1,22 @@
 import mongoose from 'mongoose';
 
 const conversationSchema = new mongoose.Schema({
-  name: {
+  name: { type: String, default: '' },
+  isGroup: { type: Boolean, default: false },
+  members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  lastMessage: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
+  status: {
     type: String,
-    default: ''
+    enum: ['active', 'pending', 'declined'],
+    default: 'active'
   },
-  isGroup: {
-    type: Boolean,
-    default: false
-  },
-  members: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  },
-  lastMessage: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message'
+  // who has accepted the conversation
+  acceptedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  unreadCounts: {
+    type: Map,
+    of: Number,
+    default: {}
   }
 }, { timestamps: true });
 

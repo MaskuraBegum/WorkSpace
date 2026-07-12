@@ -57,8 +57,28 @@ const useChatStore = create((set, get) => ({
   removeTask: (taskId) => set((state) => ({
     tasks: state.tasks.filter(t => t._id !== taskId)
   })),
+
   removeMessage: (messageId) => set((state) => ({
     messages: state.messages.filter(m => m._id !== messageId)
+  })),
+
+  removeConversation: (conversationId) => set((state) => ({
+    conversations: state.conversations.filter(c => c._id !== conversationId),
+    activeConversation: state.activeConversation?._id === conversationId
+      ? null
+      : state.activeConversation
+  })),
+
+  updateConversation: (conversation) => set((state) => ({
+    conversations: state.conversations
+      .map(c => c._id === conversation._id ? conversation : c)
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+  })),
+
+  markConversationRead: (conversationId) => set((state) => ({
+    conversations: state.conversations.map(c =>
+      c._id === conversationId ? { ...c, unreadCount: 0 } : c
+    )
   })),
 }));
 
