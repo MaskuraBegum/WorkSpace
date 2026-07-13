@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import useChatStore from '../../store/chatStore'; // Imported chatStore
 import { uploadToCloudinary } from '../../services/upload';
 import { disconnectSocket } from '../../services/socket';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +13,7 @@ import toast from 'react-hot-toast';
 
 export default function ProfilePanel({ onClose }) {
   const { user, setUser, logout } = useAuthStore();
+  const { conversations } = useChatStore(); // Destructured conversations array
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
@@ -28,6 +30,9 @@ export default function ProfilePanel({ onClose }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showImageViewer, setShowImageViewer] = useState(false);
+
+  // Dynamically calculate total unread messages across all chats
+  const totalUnread = conversations?.reduce((sum, c) => sum + (c.unreadCount || 0), 0) || 0;
 
   useEffect(() => { loadProfile(); }, []);
 
@@ -144,50 +149,46 @@ export default function ProfilePanel({ onClose }) {
               <div className="flex items-center gap-5">
                 {/* Avatar */}
                 <div className="flex flex-col items-center gap-2 flex-shrink-0">
-  {/* Avatar with view + edit */}
-  <div className="relative" style={{ width: '80px', height: '80px' }}>
-    {/* Main avatar */}
-    <div
-      className="w-full h-full rounded-full overflow-hidden border-2 border-amber-400 shadow-lg shadow-amber-400/20 cursor-pointer"
-      onClick={() => profile?.avatarUrl && setShowImageViewer(true)}
-    >
-      {profile?.avatarUrl ? (
-        <img
-          src={profile.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
-          alt="avatar"
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-black text-zinc-900">
-          {profile?.name?.charAt(0).toUpperCase()}
-        </div>
-      )}
-    </div>
+                  <div className="relative" style={{ width: '80px', height: '80px' }}>
+                    <div
+                      className="w-full h-full rounded-full overflow-hidden border-2 border-amber-400 shadow-lg shadow-amber-400/20 cursor-pointer"
+                      onClick={() => profile?.avatarUrl && setShowImageViewer(true)}
+                    >
+                      {profile?.avatarUrl ? (
+                        <img
+                          src={profile.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
+                          alt="avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-3xl font-black text-zinc-900">
+                          {profile?.name?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
 
-    {/* Always visible edit button */}
-    <button
-      onClick={() => fileInputRef.current?.click()}
-      disabled={uploadingAvatar}
-      className="absolute -bottom-1 -right-1 w-7 h-7 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center shadow-lg transition border-2 border-zinc-900"
-      title="Change photo"
-    >
-      {uploadingAvatar
-        ? <div className="w-3 h-3 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />
-        : <Camera size={13} className="text-zinc-900" />
-      }
-    </button>
-  </div>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="absolute -bottom-1 -right-1 w-7 h-7 bg-amber-400 hover:bg-amber-500 rounded-full flex items-center justify-center shadow-lg transition border-2 border-zinc-900"
+                      title="Change photo"
+                    >
+                      {uploadingAvatar
+                        ? <div className="w-3 h-3 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin" />
+                        : <Camera size={13} className="text-zinc-900" />
+                      }
+                    </button>
+                  </div>
 
-  {/* Change photo text button */}
-  <button
-    onClick={() => fileInputRef.current?.click()}
-    disabled={uploadingAvatar}
-    className="text-xs font-semibold text-amber-500 hover:text-amber-400 transition"
-  >
-    {uploadingAvatar ? 'Uploading...' : 'Change photo'}
-  </button>
-</div>
-<input type="file" ref={fileInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="text-xs font-semibold text-amber-500 hover:text-amber-400 transition"
+                  >
+                    {uploadingAvatar ? 'Uploading...' : 'Change photo'}
+                  </button>
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
                
                 {/* Name + email + badges */}
                 <div className="flex-1 min-w-0">
@@ -197,20 +198,18 @@ export default function ProfilePanel({ onClose }) {
                     <span className="flex items-center gap-1 text-xs font-semibold text-green-400 bg-green-400/10 border border-green-400/20 px-2 py-0.5 rounded-full">
                       <Shield size={9} /> Active
                     </span>
-                    <span className="text-xs font-medium text-amber-600 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
-                      Email unverified
-                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Stats */}
               <div className="grid grid-cols-2 gap-3 mt-4">
+                {/* Updated: Unread Messages Count */}
                 <div className="bg-zinc-800 rounded-xl p-3 border border-zinc-700 flex items-center gap-3">
                   <MessageSquare size={15} className="text-amber-500 flex-shrink-0" />
                   <div>
-                    <p className="text-white font-black text-lg leading-none">{profile?.stats?.messages || 0}</p>
-                    <p className="text-zinc-500 text-xs mt-0.5">Messages sent</p>
+                    <p className="text-white font-black text-lg leading-none">{totalUnread}</p>
+                    <p className="text-zinc-500 text-xs mt-0.5">Unread messages</p>
                   </div>
                 </div>
                 <div className="bg-zinc-800 rounded-xl p-3 border border-zinc-700 flex items-center gap-3">
@@ -255,15 +254,7 @@ export default function ProfilePanel({ onClose }) {
                       className="w-full bg-zinc-800 text-white border border-zinc-700 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 rounded-xl px-4 py-2.5 text-sm outline-none transition"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-zinc-400 block mb-2">Email Address</label>
-                    <input
-                      value={profile?.email}
-                      disabled
-                      className="w-full bg-zinc-800/50 text-zinc-500 border border-zinc-700 rounded-xl px-4 py-2.5 text-sm outline-none cursor-not-allowed"
-                    />
-                    <p className="text-xs text-zinc-600 mt-1.5">Email cannot be changed. Verification coming soon.</p>
-                  </div>
+                  
                   <button
                     type="submit"
                     disabled={savingName || name === profile?.name || !name.trim()}
@@ -384,33 +375,34 @@ export default function ProfilePanel({ onClose }) {
           </>
         )}
       </div>
+
       {/* Image viewer lightbox */}
-{showImageViewer && profile?.avatarUrl && (
-  <div
-    className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center backdrop-blur-sm"
-    onClick={() => setShowImageViewer(false)}
-  >
-    <div className="relative max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
-      <img
-        src={profile.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
-        alt="Profile photo"
-        className="w-full rounded-2xl shadow-2xl"
-      />
-      <button
-        onClick={() => setShowImageViewer(false)}
-        className="absolute top-3 right-3 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition"
-      >
-        <X size={16} />
-      </button>
-      <button
-        onClick={() => { setShowImageViewer(false); fileInputRef.current?.click(); }}
-        className="absolute bottom-3 right-3 flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-zinc-900 font-bold text-xs px-3 py-2 rounded-lg transition"
-      >
-        <Camera size={13} /> Change photo
-      </button>
-    </div>
-  </div>
-)}
+      {showImageViewer && profile?.avatarUrl && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center backdrop-blur-sm"
+          onClick={() => setShowImageViewer(false)}
+        >
+          <div className="relative max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+            <img
+              src={profile.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
+              alt="Profile photo"
+              className="w-full rounded-2xl shadow-2xl"
+            />
+            <button
+              onClick={() => setShowImageViewer(false)}
+              className="absolute top-3 right-3 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition"
+            >
+              <X size={16} />
+            </button>
+            <button
+              onClick={() => { setShowImageViewer(false); fileInputRef.current?.click(); }}
+              className="absolute bottom-3 right-3 flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-zinc-900 font-bold text-xs px-3 py-2 rounded-lg transition"
+            >
+              <Camera size={13} /> Change photo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
