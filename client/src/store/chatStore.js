@@ -27,6 +27,25 @@ const useChatStore = create((set, get) => ({
     ).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
   })),
 
+  // Replace temp message with real one from server
+  replaceMessage: (message) => set((state) => {
+    const hasTempMsg = state.messages.some(m =>
+      m._id?.length !== 24 &&
+      m.content === message.content &&
+      m.sender?._id === message.sender?._id
+    );
+    if (!hasTempMsg) return state;
+    return {
+      messages: state.messages.map(m =>
+        m._id?.length !== 24 &&
+        m.content === message.content &&
+        m.sender?._id === message.sender?._id
+          ? message
+          : m
+      )
+    };
+  }),
+
   setOnlineUsers: (users) => set({ onlineUsers: users }),
 
   updateUserStatus: (userId, status) => set((state) => ({

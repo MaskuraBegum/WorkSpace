@@ -15,9 +15,12 @@ export default function ChatPage() {
     activeConversation,
     setActiveConversation,
     addMessage,
+    replaceMessage,
     setOnlineUsers,
     updateUserStatus,
-    setTyping
+    setTyping,
+    updateConversation,
+    removeConversation,
   } = useChatStore();
 
   const [showWorkspaceMobile, setShowWorkspaceMobile] = useState(false);
@@ -61,7 +64,13 @@ export default function ChatPage() {
     socket.on('user:status', ({ userId, status }) => updateUserStatus(userId, status));
 
     socket.on('message:received', (message) => {
-      if (message.sender?._id !== user._id) addMessage(message);
+      if (message.sender?._id === user._id) {
+        // Replace temp message with real one for sender
+        replaceMessage(message);
+      } else {
+        // Add message for receiver
+        addMessage(message);
+      }
     });
 
     socket.on('message:broadcast', ({ message }) => {
@@ -88,8 +97,30 @@ export default function ChatPage() {
       });
     });
 
+    // Message request received
+    socket.on('conversation:request', (conversation) => {
+      setConversations(prev => {
+        const exists = prev.find(c => c._id === conversation._id);
+        if (exists) return prev;
+        return [conversation, ...prev];
+      });
+    });
+
+    // Conversation accepted
+    socket.on('conversation:accepted', (conversation) => {
+      updateConversation(conversation);
+    });
+
+    // Conversation deleted by other user
+    socket.on('conversation:deleted', ({ conversationId }) => {
+      removeConversation(conversationId);
+    });
+
     return () => {
       socket.off('conversation:new');
+      socket.off('conversation:request');
+      socket.off('conversation:accepted');
+      socket.off('conversation:deleted');
       disconnectSocket();
     };
   }, []);
@@ -127,31 +158,24 @@ export default function ChatPage() {
       </div>
 
       {/* Chat window */}
-      <div
-        className={`${chatVisible ? 'flex' : 'hidden'} flex-1 flex-col min-w-0 overflow-hidden bg-zinc-900 relative ${isMobile ? 'w-full' : ''}`}
-      >
+      <div className={`${chatVisible ? 'flex' : 'hidden'} flex-1 flex-col min-w-0 overflow-hidden bg-zinc-900 relative ${isMobile ? 'w-full' : ''}`}>
         {activeConversation ? <ChatWindow /> : <NoChatSelected />}
 
         {activeConversation && (
           <>
-            {/* Back button — mobile only */}
             {showChatBackArrow && (
               <button
                 onClick={() => setActiveConversation(null)}
                 className="absolute top-[18px] left-4 z-10 w-9 h-9 rounded-xl flex items-center justify-center bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 transition"
-                title="Back to conversations"
               >
                 <ArrowLeft size={16} className="text-zinc-200" />
               </button>
             )}
-
-            {/* Tasks FAB — mobile + tablet */}
             {showWorkspaceFab && (
               <button
                 onClick={() => setShowWorkspaceMobile(true)}
                 className="anim-fab absolute top-[18px] right-4 z-10 w-9 h-9 rounded-xl flex items-center justify-center border-none hover:-translate-y-0.5 transition"
                 style={{ background: '#f5c842', boxShadow: '0 2px 10px rgba(245,200,66,0.25)' }}
-                title="Tasks & Notes"
               >
                 <CheckSquare size={16} className="text-zinc-900" />
               </button>
@@ -162,12 +186,7 @@ export default function ChatPage() {
 
       {/* Workspace panel */}
       {activeConversation && workspaceVisible && (
-        <div
-          className={`flex flex-col bg-zinc-900 ${
-            isMobile ? 'fixed inset-0 z-20 w-full' : ''
-          }`}
-        >
-          {/* Back header — mobile + tablet */}
+        <div className={`flex flex-col bg-zinc-900 ${isMobile ? 'fixed inset-0 z-20 w-full' : ''}`}>
           {showWorkspaceHeader && (
             <div className="flex items-center gap-3 px-5 py-[18px] bg-zinc-800 border-b border-zinc-700 flex-shrink-0">
               <button
@@ -179,7 +198,6 @@ export default function ChatPage() {
               <span className="text-sm font-semibold text-zinc-200">Tasks &amp; Notes</span>
             </div>
           )}
-
           <div className="flex-1 min-h-0 flex">
             <WorkspacePanel />
           </div>
@@ -202,7 +220,6 @@ function NoChatSelected() {
     <div className="anim-fadeIn flex-1 flex flex-col items-center justify-center text-center px-6 py-10"
       style={{ background: 'radial-gradient(circle at 50% 35%, rgba(245,200,66,0.07) 0%, transparent 60%)' }}
     >
-      {/* Icon */}
       <div
         className="anim-float w-20 h-20 rounded-3xl flex items-center justify-center mb-7"
         style={{
@@ -222,7 +239,6 @@ function NoChatSelected() {
         Pick a conversation from the sidebar or start a new one to begin chatting and collaborating.
       </p>
 
-      {/* Feature chips */}
       <div className="flex flex-wrap items-center justify-center gap-2.5 max-w-sm">
         {features.map(({ icon: Icon, label }, i) => (
           <div
@@ -236,7 +252,6 @@ function NoChatSelected() {
         ))}
       </div>
 
-      {/* Typing dots */}
       <div className="flex items-center gap-1.5 mt-11 opacity-40">
         {[0, 1, 2].map(i => (
           <div

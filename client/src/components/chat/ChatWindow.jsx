@@ -16,11 +16,25 @@ export default function ChatWindow() {
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
-  const { activeConversation, messages, setMessages, typingUsers, addMessage, addTask, removeMessage, markConversationRead } = useChatStore();
+  const {
+    activeConversation,
+    messages,
+    setMessages,
+    typingUsers,
+    addMessage,
+    addTask,
+    removeMessage,
+    markConversationRead,
+    updateConversation,
+    removeConversation,
+  } = useChatStore();
 
   const other = activeConversation?.members?.find(m => m._id !== user._id);
   const name = activeConversation?.isGroup ? activeConversation.name : other?.name;
   const typing = typingUsers[activeConversation?._id];
+  const isCreator = activeConversation?.createdBy === user._id ||
+    activeConversation?.createdBy?._id === user._id;
+  const isPending = activeConversation?.status === 'pending';
 
   useEffect(() => {
     if (!activeConversation) return;
@@ -32,9 +46,8 @@ export default function ChatWindow() {
       try {
         const { data } = await api.get(`/messages/${activeConversation._id}`);
         setMessages(data);
-        // Mark as read via API
         await api.put(`/conversations/${activeConversation._id}/read`);
-        markConversationRead(activeConversation._id)
+        markConversationRead(activeConversation._id);
         socket?.emit('messages:read', {
           conversationId: activeConversation._id,
           userId: user._id
@@ -46,7 +59,6 @@ export default function ChatWindow() {
 
     load();
 
-    // Listen for deleted messages from other users
     socket?.on('message:deleted', ({ messageId }) => {
       removeMessage(messageId);
     });
@@ -79,8 +91,14 @@ export default function ChatWindow() {
 
   const handleSend = () => {
     if (!input.trim()) return;
-    const socket = getSocket();
 
+    // Block reply in pending conversations for non-creator
+    if (isPending && !isCreator) {
+      toast.error('Accept the request first to reply');
+      return;
+    }
+
+    const socket = getSocket();
     if (!socket?.connected) {
       toast.error('Not connected. Please refresh.');
       return;
@@ -93,7 +111,8 @@ export default function ChatWindow() {
       content: input.trim(),
       replyTo: replyTo || null,
       createdAt: new Date().toISOString(),
-      isRead: false
+      isRead: false,
+      isTemp: true,
     };
 
     addMessage(tempMessage);
@@ -173,6 +192,22 @@ export default function ChatWindow() {
     }
   };
 
+  const handleAccept = async () => {
+    try {
+      const { data } = await api.put(`/conversations/${activeConversation._id}/accept`);
+      updateConversation(data);
+      toast.success('Request accepted!');
+    } catch { toast.error('Failed to accept'); }
+  };
+
+  const handleDecline = async () => {
+    try {
+      await api.put(`/conversations/${activeConversation._id}/decline`);
+      removeConversation(activeConversation._id);
+      toast.success('Request declined');
+    } catch { toast.error('Failed to decline'); }
+  };
+
   return (
     <div className="flex flex-col h-full" style={{ background: P.surface }}>
       <style>{`
@@ -209,60 +244,44 @@ export default function ChatWindow() {
         </div>
       </div>
 
-      {/* Pending request banner — shown to recipient only */}
-      {activeConversation?.status === 'pending' && (() => {
-        const isCreator = activeConversation?.createdBy === user._id ||
-          activeConversation?.createdBy?._id === user._id;
-        return !isCreator ? (
-          <div
-            className="px-6 py-3 flex items-center justify-between shrink-0"
-            style={{ background: 'rgba(245,200,66,0.06)', borderBottom: `1px solid rgba(245,200,66,0.15)` }}
-          >
-            <p className="text-[12px] font-medium" style={{ color: P.textMid }}>
-              Accept this request to reply
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={async () => {
-                  try {
-                    const { data } = await api.put(`/conversations/${activeConversation._id}/decline`);
-                    const { removeConversation } = useChatStore.getState();
-                    removeConversation(activeConversation._id);
-                    toast.success('Request declined');
-                  } catch { toast.error('Failed'); }
-                }}
-                className="text-[11px] font-semibold px-3 py-1.5 rounded-lg transition"
-                style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
-              >
-                Decline
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    const { data } = await api.put(`/conversations/${activeConversation._id}/accept`);
-                    const { updateConversation } = useChatStore.getState();
-                    updateConversation(data);
-                    toast.success('Request accepted!');
-                  } catch { toast.error('Failed'); }
-                }}
-                className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition"
-                style={{ background: P.gold, color: '#0d0d0d' }}
-              >
-                Accept & Chat
-              </button>
-            </div>
-          </div>
-        ) : (
+      {/* Pending banner */}
+      {isPending && (
+        isCreator ? (
           <div
             className="px-6 py-2.5 shrink-0 text-center"
             style={{ background: 'rgba(245,200,66,0.04)', borderBottom: `1px solid rgba(245,200,66,0.1)` }}
           >
             <p className="text-[11px]" style={{ color: P.textMid }}>
-              Waiting for {other?.name} to accept your request
+              ⏳ Waiting for <strong style={{ color: P.text }}>{other?.name}</strong> to accept your request
             </p>
           </div>
-        );
-      })()}
+        ) : (
+          <div
+            className="px-5 py-3 shrink-0 flex items-center justify-between gap-4"
+            style={{ background: 'rgba(245,200,66,0.06)', borderBottom: `1px solid rgba(245,200,66,0.15)` }}
+          >
+            <p className="text-[12px] font-medium" style={{ color: P.textMid }}>
+              💬 <strong style={{ color: P.text }}>{other?.name}</strong> wants to connect with you
+            </p>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button
+                onClick={handleDecline}
+                className="text-[11px] font-semibold px-3 py-1.5 rounded-lg transition"
+                style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}
+              >
+                Decline
+              </button>
+              <button
+                onClick={handleAccept}
+                className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition hover:opacity-90"
+                style={{ background: P.gold, color: '#0d0d0d' }}
+              >
+                Accept & Chat ✓
+              </button>
+            </div>
+          </div>
+        )
+      )}
 
       {/* Messages */}
       <div
@@ -277,6 +296,7 @@ export default function ChatWindow() {
             onReply={() => setReplyTo(msg)}
             onConvertToTask={handleConvertToTask}
             onDelete={handleDeleteMessage}
+            isTemp={msg.isTemp === true || msg._id?.length !== 24}
           />
         ))}
         <div ref={bottomRef} />
@@ -298,7 +318,7 @@ export default function ChatWindow() {
         </div>
       )}
 
-      {/* Input */}
+      {/* Input — disabled for pending non-creator */}
       <div className="px-6 py-5 shrink-0" style={{ background: P.card, borderTop: `1px solid ${P.border}` }}>
         <input
           type="file"
@@ -309,14 +329,18 @@ export default function ChatWindow() {
         />
         <div
           className="flex items-center gap-3 rounded-2xl px-3.5 py-2.5 transition focus-within:border-[#c9a227] focus-within:shadow-[0_0_0_3px_rgba(245,200,66,0.12)]"
-          style={{ background: P.surface, border: `1px solid ${P.border}` }}
+          style={{
+            background: isPending && !isCreator ? 'rgba(0,0,0,0.2)' : P.surface,
+            border: `1px solid ${P.border}`,
+            opacity: isPending && !isCreator ? 0.5 : 1,
+            pointerEvents: isPending && !isCreator ? 'none' : 'auto',
+          }}
         >
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             className="transition shrink-0 disabled:opacity-40 hover:text-[#f5c842]"
             style={{ color: P.textMid }}
-            title="Attach file"
           >
             {uploading
               ? <div className="w-4 h-4 rounded-full animate-spin" style={{ border: `2px solid ${P.goldDim}`, borderTopColor: 'transparent' }} />
@@ -328,7 +352,7 @@ export default function ChatWindow() {
             value={input}
             onChange={e => { setInput(e.target.value); handleTyping(); }}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={isPending && !isCreator ? 'Accept the request to reply...' : 'Type a message...'}
             className="flex-1 bg-transparent outline-none text-sm"
             style={{ color: P.text }}
           />
@@ -343,6 +367,12 @@ export default function ChatWindow() {
           </button>
         </div>
 
+        {isPending && !isCreator && (
+          <p className="text-[11px] text-center mt-2" style={{ color: P.textMid }}>
+            Accept the request above to start chatting
+          </p>
+        )}
+
         {uploading && (
           <p className="text-xs mt-2 text-center" style={{ color: P.textMid }}>Uploading file...</p>
         )}
@@ -351,7 +381,7 @@ export default function ChatWindow() {
   );
 }
 
-function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
+function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isTemp }) {
   const [showActions, setShowActions] = useState(false);
   const [converting, setConverting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -387,7 +417,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
   return (
     <div
       className={`flex animate-[cw-fadeUp_0.2s_ease] ${isOwn ? 'justify-end pr-2.5' : 'justify-start pl-2.5'}`}
-      onMouseEnter={() => setShowActions(true)}
+      onMouseEnter={() => !isTemp && setShowActions(true)}
       onMouseLeave={() => { setShowActions(false); setShowDeleteConfirm(false); }}
     >
       <div className={`max-w-sm lg:max-w-lg ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1.5`}>
@@ -411,10 +441,9 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
             </div>
           )}
 
-          {/* Own message actions */}
-          {showActions && isOwn && (
+          {/* Own message actions — hidden for temp messages */}
+          {showActions && isOwn && !isTemp && (
             <div className="flex items-center gap-1.5 absolute right-full bottom-0 mr-3">
-              {/* Delete confirm */}
               {showDeleteConfirm ? (
                 <div
                   className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
@@ -424,14 +453,14 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
                   <button
                     onClick={handleDelete}
                     disabled={deleting}
-                    className="px-2 py-0.5 rounded-lg text-xs font-bold transition"
+                    className="px-2 py-0.5 rounded-lg text-xs font-bold"
                     style={{ background: 'rgba(248,113,113,0.2)', color: '#f87171' }}
                   >
                     {deleting ? '...' : 'Yes'}
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="px-2 py-0.5 rounded-lg text-xs font-bold transition"
+                    className="px-2 py-0.5 rounded-lg text-xs font-bold"
                     style={{ background: P.surface, color: P.textMid }}
                   >
                     No
@@ -480,6 +509,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
               border: isOwn ? 'none' : `1px solid ${P.border}`,
               borderBottomRightRadius: isOwn ? '6px' : undefined,
               borderBottomLeftRadius: !isOwn ? '6px' : undefined,
+              opacity: isTemp ? 0.7 : 1,
             }}
           >
             {isImage && (
@@ -493,8 +523,8 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
             )}
 
             {isFile && (
-
-              <a href={message.file.url}
+              
+               <a href={message.file.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 transition px-4 py-3.5 hover:opacity-85"
@@ -526,8 +556,8 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
             )}
           </div>
 
-          {/* Other user actions */}
-          {showActions && !isOwn && (
+          {/* Other user actions — hidden for temp */}
+          {showActions && !isOwn && !isTemp && (
             <div className="flex items-center gap-1.5 absolute left-full bottom-0 ml-3">
               <button
                 onClick={() => onReply(message)}
@@ -553,9 +583,12 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete }) {
         </div>
 
         <p className="text-xs px-1 mt-1" style={{ color: P.textDim }}>
-          {message.createdAt
-            ? formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })
-            : ''}
+          {isTemp
+            ? <span style={{ opacity: 0.5 }}>Sending...</span>
+            : message.createdAt
+              ? formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })
+              : ''
+          }
         </p>
       </div>
     </div>
