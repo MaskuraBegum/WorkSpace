@@ -150,7 +150,11 @@ export const getAllMyTasks = async (req, res) => {
     const tasks = await Task.find(filter)
       .populate('assignedTo', 'name avatarUrl')
       .populate('createdBy', 'name avatarUrl')
-      .populate('conversation', 'name members')
+      .populate({
+        path: 'conversation',
+        select: 'name isGroup members',
+        populate: { path: 'members', select: 'name avatarUrl' }
+      })
       .sort({ dueDate: 1, createdAt: -1 })
       .lean();
 

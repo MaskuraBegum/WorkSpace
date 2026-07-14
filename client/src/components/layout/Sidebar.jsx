@@ -17,6 +17,7 @@ export default function Sidebar() {
   const [showNewChat, setShowNewChat] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showRequests, setShowRequests] = useState(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -85,7 +86,7 @@ export default function Sidebar() {
               <LayoutDashboard size={16} />
             </button>
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className={logoutBtnClass}
               title="Log out"
               style={{ background: 'transparent', border: `1px solid ${P.border}`, color: P.textMid }}
@@ -232,6 +233,44 @@ export default function Sidebar() {
 
       {showNewChat && <NewChatModal onClose={() => setShowNewChat(false)} />}
       {showProfile && <ProfilePanel onClose={() => setShowProfile(false)} />}
+
+      {/* Logout confirmation modal */}
+      {showLogoutConfirm && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div
+            className="w-full max-w-[320px] rounded-2xl p-5"
+            style={{ background: P.card, border: `1px solid ${P.border}` }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-sm font-bold mb-1.5" style={{ color: P.text }}>
+              Log out?
+            </p>
+            <p className="text-[12.5px] mb-4" style={{ color: P.textMid }}>
+              You'll need to sign in again to access your conversations.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-3.5 py-1.5 rounded-lg text-[12.5px] font-semibold cursor-pointer transition-colors duration-150"
+                style={{ background: 'transparent', border: `1px solid ${P.border}`, color: P.textMid }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-3.5 py-1.5 rounded-lg text-[12.5px] font-bold cursor-pointer transition-colors duration-150"
+                style={{ background: 'rgba(248,113,113,0.15)', border: '1px solid rgba(248,113,113,0.3)', color: '#f87171' }}
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

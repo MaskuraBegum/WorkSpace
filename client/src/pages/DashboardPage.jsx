@@ -465,7 +465,17 @@ export default function DashboardPage() {
           <div className={viewLayout === 'GRID' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'flex flex-col gap-2.5'}>
             {processedTasks.map((task, i) => {
               const cfg = statusCfg[task.status];
-              const conversationName = task.conversation?.name || task.conversation?.members?.find(m => m._id !== user._id)?.name || 'Conversation';
+
+              // Resolve conversation name using the same logic as ConversationItem:
+              // group chats show the group name, DMs show the other member's name.
+              const otherMember = task.conversation?.members?.find(
+                m => (m._id?.toString?.() || m._id) !== (user._id?.toString?.() || user._id)
+              );
+              
+              const conversationName = task.conversation?.isGroup
+                ? task.conversation?.name
+                : otherMember?.name || 'Unknown';
+
               const isExpanded = !!expandedTasks[task._id];
               
               const isCurrentFocus = activeFocusTask?._id === task._id;

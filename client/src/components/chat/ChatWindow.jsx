@@ -443,10 +443,10 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
 
           {/* Own message actions — hidden for temp messages */}
           {showActions && isOwn && !isTemp && (
-            <div className="flex items-center gap-1.5 absolute right-full bottom-0 mr-3">
+            <div className="flex items-center gap-1.5 absolute -bottom-11 right-0 sm:bottom-0 sm:right-full sm:top-auto sm:mr-3 z-10">
               {showDeleteConfirm ? (
                 <div
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
                   style={{ background: P.card, border: `1px solid rgba(248,113,113,0.3)` }}
                 >
                   <span style={{ color: '#f87171' }}>Delete?</span>
@@ -558,7 +558,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
 
           {/* Other user actions — hidden for temp */}
           {showActions && !isOwn && !isTemp && (
-            <div className="flex items-center gap-1.5 absolute left-full bottom-0 ml-3">
+            <div className="flex items-center gap-1.5 absolute -bottom-11 left-0 sm:bottom-0 sm:left-full sm:top-auto sm:ml-3 z-10">
               <button
                 onClick={() => onReply(message)}
                 className={actionBtnClass}
