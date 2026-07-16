@@ -22,6 +22,10 @@ import profileRoutes from './routes/profileRoutes.js';
 dotenv.config();
 
 const app = express();
+
+// 🚀 FIX: Trust Render's proxy headers to stop express-rate-limit validation crashes
+app.set('trust proxy', 1);
+
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
