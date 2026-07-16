@@ -1,9 +1,10 @@
 import Redis from 'ioredis';
 
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+const redis = new Redis(process.env.REDIS_URL, {
+  tls: process.env.REDIS_URL?.startsWith('rediss://') ? {} : undefined,
   retryStrategy(times) {
     if (times > 3) {
-      console.log('Redis connection failed, running without cache');
+      console.log('Redis connection failed');
       return null;
     }
     return Math.min(times * 200, 1000);
