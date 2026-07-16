@@ -1,108 +1,128 @@
-import { Resend } from 'resend';
+import dns from 'dns';
+// Force Node to resolve hostnames (smtp.gmail.com) to IPv4 first.
+// Fixes "connect ENETUNREACH 2607:..." errors that happen on hosts
+// where outbound IPv6 isn't properly routed (common on Render/Railway/Fly/Heroku).
+dns.setDefaultResultOrder('ipv4first');
+
+import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Initialize Resend with your API Key
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  family: 4, // force IPv4, belt-and-suspenders alongside dns.setDefaultResultOrder
+  connectionTimeout: 10000, // fail fast (10s) instead of hanging for 2 minutes
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+});
+
+// Verify connection on startup
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('❌ Email config error:', error.message);
+  } else {
+    console.log('✅ Email service ready');
+  }
+});
 
 export const sendOTPEmail = async (email, otp, name) => {
-  try {
-    const { data, error } = await resend.emails.send({
-      // Resend allows 'onboarding@resend.dev' for free testing to any email address
-      from: 'WorkSpace <onboarding@resend.dev>',
-      to: email,
-      subject: 'Your WorkSpace Verification Code',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="margin:0;padding:0;background:#0d0d0d;font-family:'Inter',Arial,sans-serif;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
-            <tr>
-              <td align="center">
-                <table width="480" cellpadding="0" cellspacing="0" style="background:#141414;border-radius:20px;border:1px solid #2a2218;overflow:hidden;max-width:480px;width:100%;">
-                  
-                  <tr>
-                    <td style="background:linear-gradient(135deg,#f5c842,#c9a227);padding:32px;text-align:center;">
-                      <div style="font-size:28px;font-weight:900;color:#0d0d0d;letter-spacing:-0.5px;">⚡ WorkSpace</div>
-                      <div style="font-size:13px;color:rgba(0,0,0,0.6);margin-top:4px;font-weight:500;">Productivity Chat Platform</div>
-                    </td>
-                  </tr>
+  const mailOptions = {
+    from: `"WorkSpace" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Your WorkSpace Verification Code',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin:0;padding:0;background:#0d0d0d;font-family:'Inter',Arial,sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0d0d;padding:40px 20px;">
+          <tr>
+            <td align="center">
+              <table width="480" cellpadding="0" cellspacing="0" style="background:#141414;border-radius:20px;border:1px solid #2a2218;overflow:hidden;max-width:480px;width:100%;">
+                
+                <!-- Header -->
+                <tr>
+                  <td style="background:linear-gradient(135deg,#f5c842,#c9a227);padding:32px;text-align:center;">
+                    <div style="font-size:28px;font-weight:900;color:#0d0d0d;letter-spacing:-0.5px;">⚡ WorkSpace</div>
+                    <div style="font-size:13px;color:rgba(0,0,0,0.6);margin-top:4px;font-weight:500;">Productivity Chat Platform</div>
+                  </td>
+                </tr>
 
-                  <tr>
-                    <td style="padding:36px 32px;">
-                      <p style="font-size:22px;font-weight:800;color:#f0ead6;margin:0 0 8px;letter-spacing:-0.3px;">
-                        Hi ${name} 👋
-                      </p>
-                      <p style="font-size:14px;color:#bfa37a;margin:0 0 28px;line-height:1.6;">
-                        Thanks for signing up! Use the verification code below to activate your account. This code expires in <strong style="color:#f5c842;">10 minutes</strong>.
-                      </p>
+                <!-- Body -->
+                <tr>
+                  <td style="padding:36px 32px;">
+                    <p style="font-size:22px;font-weight:800;color:#f0ead6;margin:0 0 8px;letter-spacing:-0.3px;">
+                      Hi ${name} 👋
+                    </p>
+                    <p style="font-size:14px;color:#bfa37a;margin:0 0 28px;line-height:1.6;">
+                      Thanks for signing up! Use the verification code below to activate your account. This code expires in <strong style="color:#f5c842;">10 minutes</strong>.
+                    </p>
 
-                      <div style="background:#1a1a1a;border:1px solid #2a2218;border-radius:16px;padding:28px 16px;text-align:center;margin-bottom:28px;">
-                        <p style="font-size:11px;font-weight:700;color:#bfa37a;text-transform:uppercase;letter-spacing:2px;margin:0 0 16px;">
-                          Your verification code
-                        </p>
-                        
-                        <div style="text-align:center; direction:ltr; white-space:nowrap;">
-                          ${otp.split('').map((digit) => `
-                            <div style="
-                              display: inline-block;
-                              width: 44px;
-                              height: 54px;
-                              line-height: 54px;
-                              background: #0d0d0d;
-                              border: 2px solid #f5c842;
-                              border-radius: 12px;
-                              text-align: center;
-                              font-size: 26px;
-                              font-weight: 900;
-                              color: #f5c842;
-                              margin: 0 3px;
-                              vertical-align: middle;
-                            ">${digit}</div>
-                          `).join('')}
-                        </div>
-                        
-                        <p style="font-size:12px;color:#9c845e;margin:16px 0 0;font-weight:600;">
-                          Expires in 10 minutes
-                        </p>
+                    <!-- OTP Box -->
+                    <div style="background:#1a1a1a;border:1px solid #2a2218;border-radius:16px;padding:28px 16px;text-align:center;margin-bottom:28px;">
+                      <p style="font-size:11px;font-weight:700;color:#bfa37a;text-transform:uppercase;letter-spacing:2px;margin:0 0 16px;">
+                        Your verification code
+                      </p>
+                      
+                      <!-- Traditional Centered Wrapper Container with Forced No-Wrap -->
+                      <div style="text-align:center; direction:ltr; white-space:nowrap;">
+                        ${otp.split('').map((digit, index) => `
+                          <div style="
+                            display: inline-block;
+                            width: 44px;
+                            height: 54px;
+                            line-height: 54px;
+                            background: #0d0d0d;
+                            border: 2px solid #f5c842;
+                            border-radius: 12px;
+                            text-align: center;
+                            font-size: 26px;
+                            font-weight: 900;
+                            color: #f5c842;
+                            margin: 0 3px;
+                            vertical-align: middle;
+                          ">${digit}</div>
+                        `).join('')}
                       </div>
-
-                      <p style="font-size:13px;color:#9c845e;margin:0;line-height:1.6;">
-                        If you didn't create a WorkSpace account, you can safely ignore this email.
+                      
+                      <!-- Brightened Visibility -->
+                      <p style="font-size:12px;color:#9c845e;margin:16px 0 0;font-weight:600;">
+                        Expires in 10 minutes
                       </p>
-                    </td>
-                  </tr>
+                    </div>
 
-                  <tr>
-                    <td style="padding:20px 32px;border-top:1px solid #2a2218;text-align:center;">
-                      <p style="font-size:11px;color:#9c845e;margin:0;">
-                        © 2026 WorkSpace · Secure verification email
-                      </p>
-                    </td>
-                  </tr>
+                    <!-- Brightened Visibility -->
+                    <p style="font-size:13px;color:#9c845e;margin:0;line-height:1.6;">
+                      If you didn't create a WorkSpace account, you can safely ignore this email.
+                    </p>
+                  </td>
+                </tr>
 
-                </table>
-              </td>
-            </tr>
-          </table>
-        </body>
-        </html>
-      `
-    });
+                <!-- Footer -->
+                <tr>
+                  <td style="padding:20px 32px;border-top:1px solid #2a2218;text-align:center;">
+                    <!-- Brightened Visibility -->
+                    <p style="font-size:11px;color:#9c845e;margin:0;">
+                      © 2026 WorkSpace · Secure verification email
+                    </p>
+                  </td>
+                </tr>
 
-    if (error) {
-      console.error('❌ Resend API Error:', error);
-      throw new Error(error.message);
-    }
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
 
-    console.log('✅ Email sent successfully:', data.id);
-    return data;
-  } catch (err) {
-    console.error('❌ Failed to send email via Resend:', err.message);
-    throw err;
-  }
+  await transporter.sendMail(mailOptions);
 };
