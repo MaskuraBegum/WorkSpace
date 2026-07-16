@@ -17,7 +17,7 @@ const P = {
 
 export default function ConversationItem({ conversation, isActive, onClick }) {
   const { user } = useAuthStore();
-  const { onlineUsers, removeConversation, updateConversation, setActiveConversation } = useChatStore();
+  const { onlineUsers, removeConversation, updateConversation } = useChatStore();
   const [showDelete, setShowDelete] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false); // Tracks inline confirmation state
   const [deleting, setDeleting] = useState(false);
@@ -101,9 +101,23 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
     }
   };
 
+  // Safe wrapper execution for clicking the row item
+  const handleItemClick = (e) => {
+    // 1. If conversation needs acceptance or user is verifying a delete, do nothing.
+    if (needsAcceptance || confirmDelete) return;
+
+    // 2. CRITICAL FIX: If this specific chat item is ALREADY active, do not execute the onClick again.
+    // This stops the parent handler from accidentally deselecting/toggling it to null on a 2nd click.
+    if (isActive) return;
+
+    if (onClick) {
+      onClick(e);
+    }
+  };
+
   return (
     <div
-      onClick={needsAcceptance || confirmDelete ? undefined : onClick}
+      onClick={handleItemClick}
       className={`flex items-center gap-3 px-4 py-[11px] transition-colors duration-150 border-r-2 group relative ${
         needsAcceptance || confirmDelete ? 'cursor-default' : 'cursor-pointer'
       } ${
@@ -113,10 +127,10 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Avatar */}
-      <div className="relative shrink-0">
+      {/* Avatar Container with pointer-events-none to prevent avatar click blockages */}
+      <div className="relative shrink-0 select-none pointer-events-none">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-bold transition-all duration-150"
+          className="w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-bold transition-all duration-150 overflow-hidden"
           style={{
             background: isActive
               ? `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`
@@ -127,7 +141,15 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
             color: isActive ? '#0d0d0d' : needsAcceptance ? '#f87171' : P.gold,
           }}
         >
-          {initial}
+          {other?.avatarUrl ? (
+            <img
+              src={other.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
+              alt={name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            initial
+          )}
         </div>
         {isOnline && !needsAcceptance && (
           <div

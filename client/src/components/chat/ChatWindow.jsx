@@ -13,6 +13,7 @@ export default function ChatWindow() {
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [viewerImageUrl, setViewerImageUrl] = useState(null); // Standard Image Viewer State
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
@@ -209,7 +210,7 @@ export default function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col h-full" style={{ background: P.surface }}>
+    <div className="flex flex-col h-full relative" style={{ background: P.surface }}>
       <style>{`
         @keyframes cw-fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes cw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -222,10 +223,19 @@ export default function ChatWindow() {
         style={{ background: P.card, borderBottom: `1px solid ${P.border}` }}
       >
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0"
+          className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 overflow-hidden cursor-pointer hover:opacity-90 transition"
           style={{ background: P.goldGlow, color: P.gold, border: `1px solid ${P.goldDim}` }}
+          onClick={() => !activeConversation?.isGroup && other?.avatarUrl && setViewerImageUrl(other.avatarUrl)}
         >
-          {name?.charAt(0).toUpperCase()}
+          {!activeConversation?.isGroup && other?.avatarUrl ? (
+            <img
+              src={other.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
+              alt={name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            name?.charAt(0).toUpperCase()
+          )}
         </div>
         <div className="min-w-0 pl-0.5">
           <p className="font-semibold text-sm truncate leading-[1.4]" style={{ color: P.text }}>{name}</p>
@@ -297,6 +307,7 @@ export default function ChatWindow() {
             onConvertToTask={handleConvertToTask}
             onDelete={handleDeleteMessage}
             isTemp={msg.isTemp === true || msg._id?.length !== 24}
+            onViewImage={setViewerImageUrl}
           />
         ))}
         <div ref={bottomRef} />
@@ -377,11 +388,39 @@ export default function ChatWindow() {
           <p className="text-xs mt-2 text-center" style={{ color: P.textMid }}>Uploading file...</p>
         )}
       </div>
+
+      {/* Standard Size Image Viewer Modal */}
+      {viewerImageUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-[cw-fadeUp_0.15s_ease]">
+          <div className="w-full max-w-md mx-4 bg-zinc-900 rounded-2xl border border-zinc-800 flex flex-col overflow-hidden shadow-2xl">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/50">
+              <span className="text-zinc-300 font-semibold text-sm">Image Preview</span>
+              <button
+                onClick={() => setViewerImageUrl(null)}
+                className="w-8 h-8 rounded-lg bg-transparent hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body with Standard Size Image */}
+            <div className="p-5 flex items-center justify-center bg-zinc-900">
+              <img
+                src={viewerImageUrl.replace('/upload/', '/upload/q_100,f_auto/')}
+                alt="Preview"
+                className="w-full h-auto max-h-[380px] object-contain rounded-xl shadow-md"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isTemp }) {
+function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isTemp, onViewImage }) {
   const [showActions, setShowActions] = useState(false);
   const [converting, setConverting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -434,10 +473,19 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
         <div className="flex items-end gap-3.5 relative">
           {!isOwn && (
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden cursor-pointer hover:opacity-90 transition"
               style={{ background: P.goldGlow, color: P.gold, border: `1px solid ${P.goldDim}` }}
+              onClick={() => message.sender?.avatarUrl && onViewImage(message.sender.avatarUrl)}
             >
-              {message.sender?.name?.charAt(0).toUpperCase()}
+              {message.sender?.avatarUrl ? (
+                <img
+                  src={message.sender.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
+                  alt={message.sender?.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                message.sender?.name?.charAt(0).toUpperCase()
+              )}
             </div>
           )}
 
@@ -513,18 +561,17 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
             }}
           >
             {isImage && (
-              <a href={message.file.url} target="_blank" rel="noopener noreferrer">
+              <div onClick={() => onViewImage(message.file.url)} className="cursor-pointer">
                 <img
                   src={message.file.url}
                   alt={message.file.name}
-                  className="rounded-2xl cursor-pointer transition w-full max-w-[320px] h-auto block object-contain hover:opacity-90"
+                  className="rounded-2xl transition w-full max-w-[320px] h-auto block object-contain hover:opacity-90"
                 />
-              </a>
+              </div>
             )}
 
             {isFile && (
-              
-               <a href={message.file.url}
+              <a href={message.file.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 transition px-4 py-3.5 hover:opacity-85"
@@ -558,7 +605,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
 
           {/* Other user actions — hidden for temp */}
           {showActions && !isOwn && !isTemp && (
-            <div className="flex items-center gap-1.5 absolute -bottom-11 left-0 sm:bottom-0 sm:left-full sm:top-auto sm:ml-3 z-10">
+            <div className="flex items-center gap-1.5 absolute -bottom-11 left-0 sm:bottom-0 sm:left-full sm:top-auto sm:mr-3 z-10">
               <button
                 onClick={() => onReply(message)}
                 className={actionBtnClass}
