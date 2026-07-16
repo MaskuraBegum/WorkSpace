@@ -81,6 +81,21 @@ const start = async () => {
   initSocket(io);
   httpServer.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
+
+    // Keep-alive ping every 14 minutes to prevent Render from sleeping
+    if (process.env.NODE_ENV === 'production') {
+      const BACKEND_URL = process.env.BACKEND_URL || '';
+      if (BACKEND_URL) {
+        setInterval(async () => {
+          try {
+            await fetch(`${BACKEND_URL}/`);
+            console.log('Keep-alive ping sent');
+          } catch (e) {
+            console.log('Keep-alive failed:', e.message);
+          }
+        }, 14 * 60 * 1000); // every 14 minutes
+      }
+    }
   });
 };
 
