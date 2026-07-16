@@ -2,11 +2,11 @@
 
 # ⚡ WorkSpace
 
-### A real-time productivity chat platform — built from scratch
+### A real-time productivity chat platform - built from scratch
 
 
 
-*WorkSpace is more than a chat app — every conversation has a built-in task board, collaborative notepad, link vault, and document storage. Think Slack + Notion, built as a full-stack portfolio project.*
+*WorkSpace is more than a chat app - every conversation has a built-in task board, collaborative notepad, link vault, and document storage. Chat, tasks, notes, and shared files - all in one real-time workspace built for teams that move fast.*
 
 [**Live Demo**](https://work-space-inky.vercel.app/) · [**API**](https://workspace-kaij.onrender.com) · [**Docs**](./docs/ARCHITECTURE.md) 
 
