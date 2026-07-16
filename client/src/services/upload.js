@@ -1,7 +1,10 @@
 export const uploadToCloudinary = async (file) => {
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME?.replace(/^["']|["']$/g, '');
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET?.replace(/^["']|["']$/g, '');
+
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+  formData.append('upload_preset', uploadPreset);
   formData.append('quality', 'auto:best');
   formData.append('fetch_format', 'auto');
 
@@ -13,7 +16,7 @@ export const uploadToCloudinary = async (file) => {
   const resourceType = file.type.startsWith('image/') ? 'image' : 'auto';
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     { method: 'POST', body: formData }
   );
 
