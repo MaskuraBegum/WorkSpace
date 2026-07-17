@@ -1,25 +1,48 @@
-import { BrevoClient } from '@getbrevo/brevo';
+import { google } from 'googleapis';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Initialize the Brevo Client using your master HTTP API key
-const brevo = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
+console.log('DEBUG:', {
+  hasClientId: !!process.env.OAUTH_CLIENT_ID,
+  hasClientSecret: !!process.env.OAUTH_CLIENT_SECRET,
+  hasRefreshToken: !!process.env.OAUTH_REFRESH_TOKEN,
+});
+
+const oauth2Client = new google.auth.OAuth2(
+  process.env.OAUTH_CLIENT_ID,
+  process.env.OAUTH_CLIENT_SECRET,
+  'https://developers.google.com/oauthplayground'
+);
+
+oauth2Client.setCredentials({
+  refresh_token: process.env.OAUTH_REFRESH_TOKEN,
+});
+
+const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+// Encodes a raw MIME message into the base64url format Gmail API requires
+function buildRawMessage({ to, from, subject, html }) {
+  const messageParts = [
+    `To: ${to}`,
+    `From: ${from}`,
+    `Subject: =?utf-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=utf-8',
+    '',
+    html,
+  ];
+  const message = messageParts.join('\n');
+
+  return Buffer.from(message)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
 
 export const sendOTPEmail = async (email, otp, name) => {
   try {
-    const result = await brevo.transactionalEmails.sendTransacEmail({
-      // The authorized email you verified in Brevo's Senders tab
-      sender: { 
-        name: 'WorkSpace', 
-        email: process.env.BREVO_SENDER_EMAIL 
-      },
-      // The recipient user (can be any user's email address)
-      to: [{ 
-        email: email, 
-        name: name 
-      }],
-      subject: 'Your WorkSpace Verification Code',
-      htmlContent: `
+    const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -98,13 +121,24 @@ export const sendOTPEmail = async (email, otp, name) => {
           </table>
         </body>
         </html>
-      `
+      `;
+
+    const raw = buildRawMessage({
+      to: email,
+      from: `WorkSpace <${process.env.GMAIL_SENDER}>`,
+      subject: 'Your WorkSpace Verification Code',
+      html: htmlContent,
     });
 
-    console.log('✅ Email successfully dispatched via Brevo Web API:', result.messageId);
+    const result = await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw },
+    });
+
+    console.log('✅ Email successfully dispatched via Gmail API:', result.data.id);
     return result;
   } catch (error) {
-    console.error('❌ Brevo Web API Dispatch Error:', error.message);
+    console.error('❌ Gmail API Dispatch Error:', error.message);
     throw error;
   }
 };
