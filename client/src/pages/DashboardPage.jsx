@@ -321,35 +321,35 @@ export default function DashboardPage() {
         {/* Profile Header */}
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg sm:text-[21px] font-extrabold" style={{ color: P.text }}>
+            <h2 className="text-lg sm:text-[24px] font-extrabold" style={{ color: P.text }}>
               Hey, {user.name?.split(' ')[0]} 👋
             </h2>
-            <p className="text-[11px]" style={{ color: P.textMid }}>
+            <p className="text-[11px] sm:text-xs" style={{ color: P.textMid }}>
               {stats.total === 0 ? 'No tasks yet.' : `${stats.pending + stats.inProgress} tasks require attention`}
             </p>
           </div>
           {stats.total > 0 && (
-            <div className="relative w-[42px] h-[42px] shrink-0">
-              <svg viewBox="0 0 36 36" className="w-[42px] h-[42px]" style={{ transform: 'rotate(-90deg)' }}>
+            <div className="relative w-[42px] h-[42px] sm:w-[50px] sm:h-[50px] shrink-0">
+              <svg viewBox="0 0 36 36" className="w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
                 <circle cx="18" cy="18" r="16" fill="none" stroke={P.border} strokeWidth="3" />
                 <circle cx="18" cy="18" r="16" fill="none" stroke={P.gold} strokeWidth="3" strokeDasharray={circumference} strokeDashoffset={dashOffset} strokeLinecap="round" />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black" style={{ color: P.gold }}>{donePercent}%</div>
+              <div className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-[11px] font-black" style={{ color: P.gold }}>{donePercent}%</div>
             </div>
           )}
         </div>
 
         {/* Analytics Insights */}
         {insight && (
-          <div className="mb-4 p-2.5 rounded-lg flex items-start gap-2.5 border animate-[fadeUp_0.15s_ease]" style={{ background: P.surface, borderColor: P.border }}>
-            <div className="w-6 h-6 rounded bg-zinc-900 flex items-center justify-center border border-zinc-800 shrink-0 text-zinc-400" style={{ color: insight.color }}>
-              <Lightbulb size={13} />
+          <div className="mb-4 p-2.5 sm:p-3.5 rounded-lg sm:rounded-xl flex items-start gap-2.5 border animate-[fadeUp_0.15s_ease]" style={{ background: P.surface, borderColor: P.border }}>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded bg-zinc-900 flex items-center justify-center border border-zinc-800 shrink-0 text-zinc-400" style={{ color: insight.color }}>
+              <Lightbulb size={14} />
             </div>
             <div>
               <span className="inline-block text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded mb-0.5" style={{ background: `${insight.color}15`, color: insight.color }}>
                 {insight.label}
               </span>
-              <p className="text-[11px] leading-normal" style={{ color: P.text }}>{insight.text}</p>
+              <p className="text-[11px] sm:text-xs leading-normal" style={{ color: P.text }}>{insight.text}</p>
             </div>
           </div>
         )}
@@ -363,12 +363,12 @@ export default function DashboardPage() {
             { label:'Done',         value: stats.done,       accent: P.green,  icon: <Check size={13}/> },
             { label:'Overdue',      value: stats.overdue,    accent: P.red,    icon: <AlertCircle size={13}/> },
           ].map(({ label, value, accent, icon }) => (
-            <div key={label} className="p-2.5 rounded-lg flex flex-col gap-1 justify-between" style={{ background: P.card, border: `1px solid ${P.border}` }}>
+            <div key={label} className="p-2.5 sm:p-4 rounded-lg sm:rounded-xl flex flex-col gap-1 sm:gap-2 justify-between" style={{ background: P.card, border: `1px solid ${P.border}` }}>
               <div className="flex items-center justify-between">
-                <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: `${accent}15`, color: accent }}>{icon}</div>
-                <span className="text-lg font-black tracking-tight">{value}</span>
+                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded flex items-center justify-center" style={{ background: `${accent}15`, color: accent }}>{icon}</div>
+                <span className="text-lg sm:text-xl font-black tracking-tight">{value}</span>
               </div>
-              <p className="text-[9px] font-bold uppercase tracking-wide opacity-80 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: accent }}>{label}</p>
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wide opacity-80 whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: accent }}>{label}</p>
             </div>
           ))}
         </div>
@@ -400,13 +400,13 @@ export default function DashboardPage() {
               </button>
             )}
 
-            <div className="relative flex-1 sm:w-36">
+            <div className="relative flex-1 sm:w-40 lg:w-48">
               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500"><Search size={11} /></span>
-              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="w-full bg-zinc-900/50 text-[11px] rounded-md pl-6 pr-1.5 py-1 border border-zinc-800 focus:outline-none focus:border-[#f5c842]" style={{ color: P.text }} />
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." className="w-full bg-zinc-900/50 text-[11px] sm:text-xs rounded-md pl-6 pr-1.5 py-1 border border-zinc-800 focus:outline-none focus:border-[#f5c842]" style={{ color: P.text }} />
             </div>
 
             <div className="relative shrink-0">
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="bg-zinc-900/50 text-[11px] rounded-md pl-2 pr-6 py-1 border border-zinc-800 focus:outline-none focus:border-[#f5c842] appearance-none text-zinc-300">
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="bg-zinc-900/50 text-[11px] sm:text-xs rounded-md pl-2 pr-6 py-1 border border-zinc-800 focus:outline-none focus:border-[#f5c842] appearance-none text-zinc-300">
                 <option value="NEWEST">Newest</option>
                 <option value="DUE_SOON">Due Soon</option>
               </select>
@@ -426,7 +426,7 @@ export default function DashboardPage() {
             <p className="text-xs text-zinc-500">No tasks found</p>
           </div>
         ) : (
-          <div className={viewLayout === 'GRID' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2' : 'flex flex-col gap-1.5'}>
+          <div className={viewLayout === 'GRID' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4' : 'flex flex-col gap-1.5 sm:gap-2.5'}>
             {processedTasks.map((task) => {
               const cfg = statusCfg[task.status];
               const otherMember = task.conversation?.members?.find(m => (m._id?.toString?.() || m._id) !== (user._id?.toString?.() || user._id));
@@ -438,87 +438,87 @@ export default function DashboardPage() {
               const doneSubtasks = taskSubtasks.filter(s => s.done).length;
 
               return (
-                <div key={task._id} className="flex flex-col p-2.5 sm:p-3 rounded-lg transition-all animate-[fadeUp_0.2s_ease] hover:bg-[#121212]" style={{ background: P.card, border: isCurrentFocus ? `1px solid ${P.gold}` : task.isOverdue ? `1px solid rgba(248,113,113,0.25)` : `1px solid ${P.border}` }}>
+                <div key={task._id} className="flex flex-col p-2.5 sm:p-4 rounded-lg sm:rounded-2xl transition-all animate-[fadeUp_0.2s_ease] hover:bg-[#121212]" style={{ background: P.card, border: isCurrentFocus ? `1px solid ${P.gold}` : task.isOverdue ? `1px solid rgba(248,113,113,0.25)` : `1px solid ${P.border}` }}>
                   
                   {/* Main Row */}
                   <div className="flex items-center justify-between gap-2.5 w-full">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <button onClick={() => handleStatusUpdate(task)} className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all" style={{ border: `1.5px solid ${cfg.color}`, background: task.status !== 'PENDING' ? cfg.bg : 'transparent' }}>
-                        {task.status === 'DONE' && <Check size={9} color={P.green} />}
-                        {task.status === 'IN_PROGRESS' && <div className="w-1 h-1 rounded-full" style={{ background: P.yellow }} />}
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                      <button onClick={() => handleStatusUpdate(task)} className="w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shrink-0 transition-all" style={{ border: `${window.innerWidth < 640 ? '1.5px' : '2px'} solid ${cfg.color}`, background: task.status !== 'PENDING' ? cfg.bg : 'transparent' }}>
+                        {task.status === 'DONE' && <Check size={window.innerWidth < 640 ? 9 : 11} color={P.green} />}
+                        {task.status === 'IN_PROGRESS' && <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full" style={{ background: P.yellow }} />}
                       </button>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className={`text-xs font-medium transition-all ${isExpanded ? 'whitespace-normal break-words' : 'truncate max-w-[160px] sm:max-w-[340px]'}`} style={{ color: task.status === 'DONE' ? P.textDim : P.text, textDecoration: task.status === 'DONE' ? 'line-through' : 'none' }}>
+                          <p className={`text-xs sm:text-sm font-medium transition-all ${isExpanded ? 'whitespace-normal break-words' : 'truncate max-w-[160px] sm:max-w-[400px]'}`} style={{ color: task.status === 'DONE' ? P.textDim : P.text, textDecoration: task.status === 'DONE' ? 'line-through' : 'none' }}>
                             {task.title}
                           </p>
                           {task.status !== 'DONE' && (
-                            <button onClick={() => startFocusSession(task)} disabled={isAnotherTaskFocused} style={{ background: isCurrentFocus ? `${P.gold}20` : isAnotherTaskFocused ? 'transparent' : 'rgba(245,200,66,0.05)', border: `1px solid ${isCurrentFocus ? P.gold : isAnotherTaskFocused ? '#2a2a2a' : 'rgba(245,200,66,0.15)'}`, color: isAnotherTaskFocused ? '#4a4030' : P.gold, cursor: isAnotherTaskFocused ? 'not-allowed' : 'pointer' }} className="text-[8px] font-bold px-1 py-0.5 rounded shrink-0">
+                            <button onClick={() => startFocusSession(task)} disabled={isAnotherTaskFocused} style={{ background: isCurrentFocus ? `${P.gold}20` : isAnotherTaskFocused ? 'transparent' : 'rgba(245,200,66,0.05)', border: `1px solid ${isCurrentFocus ? P.gold : isAnotherTaskFocused ? '#2a2a2a' : 'rgba(245,200,66,0.2)'}`, color: isAnotherTaskFocused ? '#4a4030' : P.gold, cursor: isAnotherTaskFocused ? 'not-allowed' : 'pointer' }} className="text-[8px] sm:text-[10px] font-bold px-1 sm:px-2 py-0.5 rounded shrink-0">
                               {isCurrentFocus ? '🎯 Focus' : isAnotherTaskFocused ? '🔒 Locked' : 'Focus'}
                             </button>
                           )}
                         </div>
 
-                        {/* High-density Metadata Row */}
-                        <div className="flex items-center gap-2 flex-wrap mt-0.5 text-[9px]" style={{ color: P.textMid }}>
-                          <span>{conversationName}</span>
-                          {task.dueDate && <span style={{ color: task.isOverdue ? P.red : P.textMid }}>• Due {format(new Date(task.dueDate), 'MMM d')}</span>}
-                          {taskSubtasks.length > 0 && <span className="text-zinc-500 font-medium">• {doneSubtasks}/{taskSubtasks.length} subtasks</span>}
-                          <span style={{ color: P.textDim }}>• {formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}</span>
+                        {/* High-density Metadata Row (Mobile gets bullet strings, Desktop gets clear icons/labels) */}
+                        <div className="flex items-center gap-2 flex-wrap mt-0.5 sm:mt-1 text-[9px] sm:text-[11px]" style={{ color: P.textMid }}>
+                          <span className="sm:flex sm:items-center sm:gap-1">{window.innerWidth >= 640 && '⚡ '} {conversationName}</span>
+                          {task.dueDate && <span style={{ color: task.isOverdue ? P.red : P.textMid }}>{window.innerWidth < 640 ? '• Due ' : '📅 '} {format(new Date(task.dueDate), 'MMM d')}</span>}
+                          {taskSubtasks.length > 0 && <span className="text-zinc-500 font-medium sm:font-semibold">{window.innerWidth < 640 ? '• ' : '📋 '} {doneSubtasks}/{taskSubtasks.length} subtasks</span>}
+                          <span style={{ color: P.textDim }}>{window.innerWidth < 640 ? '• ' : ''}{formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <div className="px-1.5 py-0.5 rounded text-[9px] font-semibold hidden sm:block" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+                      <div className="px-1.5 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[11px] font-semibold hidden sm:block" style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
                         {cfg.label}
                       </div>
-                      <button onClick={() => toggleExpand(task._id)} className="p-0.5 rounded hover:bg-zinc-800 transition-colors flex items-center justify-center">
-                        {isExpanded ? <ChevronDown size={14} color={P.textMid} /> : <ChevronRight size={14} color={P.textDim} />}
+                      <button onClick={() => toggleExpand(task._id)} className="p-0.5 sm:p-1 rounded hover:bg-zinc-800 transition-colors flex items-center justify-center">
+                        {isExpanded ? <ChevronDown size={window.innerWidth < 640 ? 14 : 16} color={P.textMid} /> : <ChevronRight size={window.innerWidth < 640 ? 14 : 16} color={P.textDim} />}
                       </button>
                     </div>
                   </div>
 
                   {/* Expanded Checklist Drawer */}
                   {isExpanded && (
-                    <div className="w-full mt-2 pt-2 border-t border-zinc-800/60 text-xs animate-[fadeUp_0.15s_ease]">
-                      <div className="flex flex-col gap-1.5 bg-zinc-950 p-2 rounded-lg border border-zinc-900/80">
-                        <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-wider">Sub-Milestones</span>
+                    <div className="w-full mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-zinc-800/60 text-xs animate-[fadeUp_0.15s_ease]">
+                      <div className="flex flex-col gap-1.5 sm:gap-2.5 bg-zinc-950 p-2 sm:p-3 rounded-lg sm:rounded-xl border border-zinc-900/80">
+                        <span className="text-[8px] sm:text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Sub-Milestones</span>
                         
                         <div className="flex gap-1.5 items-center">
                           <input 
                             type="text" 
-                            placeholder="Add item..."
+                            placeholder={window.innerWidth < 640 ? "Add item..." : "Add action item..."}
                             value={newSubtaskTexts[task._id] || ''}
                             onChange={(e) => setNewSubtaskTexts(prev => ({ ...prev, [task._id]: e.target.value }))}
                             onKeyDown={(e) => e.key === 'Enter' && addSubtask(task._id)}
-                            className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-0.5 text-[11px] text-zinc-200 focus:outline-none focus:border-[#f5c842]"
+                            className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-0.5 sm:py-1 text-[11px] sm:text-xs text-zinc-200 focus:outline-none focus:border-[#f5c842]"
                           />
-                          <button onClick={() => addSubtask(task._id)} className="p-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300">
-                            <Plus size={11} />
+                          <button onClick={() => addSubtask(task._id)} className="p-0.5 sm:p-1 rounded bg-zinc-900 border border-zinc-800 text-zinc-300">
+                            <Plus size={window.innerWidth < 640 ? 11 : 13} />
                           </button>
                         </div>
 
                         {taskSubtasks.length === 0 ? (
-                          <span className="text-[9px] text-zinc-600 italic px-0.5">Empty item logs.</span>
+                          <span className="text-[9px] sm:text-[11px] text-zinc-600 italic px-0.5">No checklist items logged yet.</span>
                         ) : (
-                          <div className="flex flex-col gap-1 mt-0.5 max-h-28 overflow-y-auto custom-scrollbar pr-0.5">
+                          <div className="flex flex-col gap-1 mt-0.5 max-h-28 sm:max-h-36 overflow-y-auto custom-scrollbar pr-0.5">
                             {taskSubtasks.map(sub => (
-                              <div key={sub.id} className="flex items-center justify-between bg-zinc-900/20 p-1.5 rounded border border-zinc-900 group">
-                                <label className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+                              <div key={sub.id} className="flex items-center justify-between bg-zinc-900/20 p-1.5 sm:p-2 rounded border border-zinc-900 group">
+                                <label className="flex items-center gap-1.5 sm:gap-2 cursor-pointer flex-1 min-w-0">
                                   <input 
                                     type="checkbox" 
                                     checked={sub.done} 
                                     onChange={() => toggleSubtask(task._id, sub.id)}
-                                    className="accent-[#f5c842] h-3 w-3 rounded"
+                                    className="accent-[#f5c842] h-3 w-3 sm:h-3.5 sm:w-3.5 rounded"
                                   />
-                                  <span className={`text-[11px] truncate ${sub.done ? 'line-through text-zinc-600' : 'text-zinc-300'}`}>
+                                  <span className={`text-[11px] sm:text-xs truncate ${sub.done ? 'line-through text-zinc-600' : 'text-zinc-300'}`}>
                                     {sub.text}
                                   </span>
                                 </label>
                                 <button onClick={() => deleteSubtask(task._id, sub.id)} className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
-                                  <Trash2 size={10} />
+                                  <Trash2 size={window.innerWidth < 640 ? 10 : 11} />
                                 </button>
                               </div>
                             ))}

@@ -286,7 +286,10 @@ export default function NewChatModal({ onClose }) {
               </motion.button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-5">
+            <div 
+              className="flex-1 overflow-y-auto px-5 sm:px-6 py-5"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {tab === "group" && (
                 <motion.input
                   initial={{
@@ -375,7 +378,7 @@ export default function NewChatModal({ onClose }) {
                           }}
                         >
                           <div
-                            className="w-5 h-5 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 text-[9px] cursor-pointer"
+                            className="w-5 h-5 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 text-[9px] cursor-pointer relative group"
                             style={{
                               background: P.goldGlow,
                               color: P.gold,
@@ -386,8 +389,9 @@ export default function NewChatModal({ onClose }) {
                               if (user.avatarUrl) setViewerImageUrl(user.avatarUrl);
                             }}
                           >
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150" />
                             {user.avatarUrl ? (
-                              <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                              <img src={user.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')} alt="" className="w-full h-full object-cover" />
                             ) : (
                               user.name?.charAt(0).toUpperCase()
                             )}
@@ -420,7 +424,10 @@ export default function NewChatModal({ onClose }) {
               </AnimatePresence>
 
               {/* Results */}
-              <div className="mt-2 space-y-2 max-h-[340px] overflow-y-auto pr-1">
+              <div 
+                className="mt-2 space-y-2 max-h-[340px] overflow-y-auto pr-1"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
                 {loading && (
                   <div className="flex justify-center py-12">
                     <Loader
@@ -476,7 +483,7 @@ export default function NewChatModal({ onClose }) {
                           }}
                           onClick={(e) => {
                             if (user.avatarUrl) {
-                              e.stopPropagation(); // Avoid triggering chat start/selection
+                              e.stopPropagation();
                               setViewerImageUrl(user.avatarUrl);
                             }
                           }}
@@ -647,13 +654,15 @@ export default function NewChatModal({ onClose }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
             onClick={() => setViewerImageUrl(null)}
           >
             <motion.div 
-              initial={{ opacity: 0, y: 15, scale: 0.95 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 15, scale: 0.95 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md mx-4 bg-zinc-900 rounded-2xl border border-zinc-800 flex flex-col overflow-hidden shadow-2xl"
             >
