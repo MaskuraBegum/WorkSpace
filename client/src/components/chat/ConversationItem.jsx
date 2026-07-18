@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Trash2, Check, X } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import useChatStore from '../../store/chatStore';
@@ -19,10 +19,13 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   const { user } = useAuthStore();
   const { onlineUsers, removeConversation, updateConversation } = useChatStore();
   const [showDelete, setShowDelete] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false); // Tracks inline confirmation state
+  const [confirmDelete, setConfirmDelete] = useState(false); 
   const [deleting, setDeleting] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [declining, setDeclining] = useState(false);
+
+  // Mobile long-press timer reference
+  const longPressTimer = useRef(null);
 
   const other = conversation.members?.find(m => m._id !== user._id);
   const name = conversation.isGroup ? conversation.name : other?.name || 'Unknown';
@@ -34,11 +37,25 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
     : '';
   const unreadCount = conversation.unreadCount || 0;
   const isPending = conversation.status === 'pending';
-  const isCreator = conversation.createdBy === user._id ||
-    conversation.createdBy?._id === user._id;
+  const isCreator = conversation.createdBy === user._id || conversation.createdBy?._id === user._id;
   const needsAcceptance = isPending && !isCreator;
 
-  // Reset confirmation state if mouse leaves item entirely
+  // Mobile Touch Handlers (Long Press triggers the initial Trash Can button visibility)
+  const handleTouchStart = (e) => {
+    if (needsAcceptance || confirmDelete) return;
+    
+    longPressTimer.current = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(50);
+      setShowDelete(true); // Reveals the trash can action slot
+    }, 600);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
+
   const handleMouseLeave = () => {
     setShowDelete(false);
     setConfirmDelete(false);
@@ -52,6 +69,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   const handleCancelDelete = (e) => {
     e.stopPropagation();
     setConfirmDelete(false);
+    setShowDelete(false); // Reset fully on mobile cancel
   };
 
   const handleDelete = async (e) => {
@@ -101,13 +119,9 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
     }
   };
 
-  // Safe wrapper execution for clicking the row item
   const handleItemClick = (e) => {
-    // 1. If conversation needs acceptance or user is verifying a delete, do nothing.
-    if (needsAcceptance || confirmDelete) return;
-
-    // 2. CRITICAL FIX: If this specific chat item is ALREADY active, do not execute the onClick again.
-    // This stops the parent handler from accidentally deselecting/toggling it to null on a 2nd click.
+    // Prevent navigating into the chat if active delete/actions options are visible
+    if (needsAcceptance || confirmDelete || showDelete) return;
     if (isActive) return;
 
     if (onClick) {
@@ -118,8 +132,11 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   return (
     <div
       onClick={handleItemClick}
-      className={`flex items-center gap-3 px-4 py-[11px] transition-colors duration-150 border-r-2 group relative ${
-        needsAcceptance || confirmDelete ? 'cursor-default' : 'cursor-pointer'
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchEnd} // Cancel long press if scrolling
+      className={`flex items-center gap-3 px-4 py-[11px] transition-colors duration-150 border-r-2 group relative select-none ${
+        needsAcceptance || confirmDelete || showDelete ? 'cursor-default' : 'cursor-pointer'
       } ${
         isActive ? 'border-[#f5c842]' : 'border-transparent hover:bg-[rgba(245,200,66,0.06)]'
       }`}
@@ -127,7 +144,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Avatar Container with pointer-events-none to prevent avatar click blockages */}
+      {/* Avatar Container */}
       <div className="relative shrink-0 select-none pointer-events-none">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-bold transition-all duration-150 overflow-hidden"
@@ -161,7 +178,6 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
 
       {/* Info Container */}
       <div className="flex-1 min-w-0">
-        {/* Top Line: Name and Time / Delete Trigger */}
         <div className="flex items-center justify-between gap-2 mb-1">
           <p
             className="text-[14px] font-bold whitespace-nowrap overflow-hidden text-ellipsis flex-1"
@@ -174,9 +190,9 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
           {!needsAcceptance && (
             <div className="flex items-center justify-end h-5 min-w-[50px] relative">
               
-              {/* Timestamp: Hidden when hover options or deletions are actively confirming */}
+              {/* Timestamp */}
               <div className={`transition-opacity duration-150 ${
-                confirmDelete || showDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                showDelete || confirmDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
               }`}>
                 {time && (
                   <span className="text-[11px] font-medium whitespace-nowrap" style={{ color: P.textDim }}>
@@ -185,11 +201,15 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
                 )}
               </div>
 
-              {/* Delete Trigger Button (Trash Can) */}
+              {/* Step 1: Delete Button (Reveals on Desktop Hover OR Mobile Long-Press) */}
               {!confirmDelete && (
                 <button
                   onClick={handleDeleteTrigger}
-                  className="absolute right-0 top-1/2 flex items-center justify-center w-6 h-6 rounded-md border transition-all duration-150 opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto"
+                  className={`absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-md border transition-all duration-150 ${
+                    showDelete 
+                      ? 'opacity-100 scale-100 pointer-events-auto' 
+                      : 'opacity-0 scale-90 pointer-events-none group-hover:md:opacity-100 group-hover:md:scale-100 group-hover:md:pointer-events-auto'
+                  }`}
                   style={{
                     background: 'rgba(248,113,113,0.12)',
                     borderColor: 'rgba(248,113,113,0.25)',
@@ -201,7 +221,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
                 </button>
               )}
 
-              {/* Inline Confirm UI */}
+              {/* Step 2: Inline Yes/No Confirmation UI */}
               {confirmDelete && (
                 <div className="absolute right-0 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
                   <button
@@ -230,7 +250,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
           )}
         </div>
 
-        {/* Bottom Line: Last message OR request actions AND Unread Badge */}
+        {/* Bottom Line */}
         {needsAcceptance ? (
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[11px] font-semibold text-red-400">Message request</span>
@@ -267,7 +287,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
             {unreadCount > 0 && (
               <span 
                 className={`text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 transition-opacity duration-150 ${
-                  confirmDelete || showDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  showDelete || confirmDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
                 }`}
                 style={{ background: P.gold, color: '#0d0d0d' }}
               >
