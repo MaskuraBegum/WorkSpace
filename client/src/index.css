@@ -1,7 +1,22 @@
 @import "tailwindcss";
 
+/* 1. Global Viewport Locking Setup */
+html, 
+body, 
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100dvh; /* Dynamic viewport prevents layout shifting when mobile URL bars pop up */
+  overflow: hidden;
+  position: fixed; /* Prevents bounce scroll frames on iOS Chrome/Safari */
+  background-color: #141414; /* Default dark context base matching your scheme */
+}
+
+/* 2. Custom Webkit Scrollbars */
 .chat-scroll::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 .chat-scroll::-webkit-scrollbar-track {
