@@ -213,48 +213,75 @@ export default function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col h-full relative" style={{ background: P.surface }}>
+    <div className="flex flex-col h-full w-full relative overflow-hidden" style={{ background: P.surface }}>
       <style>{`
         @keyframes cw-fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes cw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         .cw-typing-dot { animation: cw-pulse 1.2s ease infinite; }
       `}</style>
 
-      {/* Header */}
+      {/* Header — Professional Grid Layout & Responsive Arrow Slot */}
       <div
-        className="flex items-center gap-4 shrink-0 py-6 pl-[66px] pr-[62px] md:px-7"
-        style={{ background: P.card, borderBottom: `1px solid ${P.border}` }}
+        className="grid grid-cols-[auto_1fr_auto] items-center gap-4 shrink-0 py-4 px-4 sm:px-6 md:px-7 z-10 transition-all duration-200"
+        style={{ 
+          background: P.card, 
+          borderBottom: `1px solid ${P.border}`,
+          backdropFilter: 'blur(8px)'
+        }}
       >
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 overflow-hidden cursor-pointer hover:opacity-90 transition"
-          style={{ background: P.goldGlow, color: P.gold, border: `1px solid ${P.goldDim}` }}
-          onClick={() => !activeConversation?.isGroup && other?.avatarUrl && setViewerImageUrl(other.avatarUrl)}
-        >
-          {!activeConversation?.isGroup && other?.avatarUrl ? (
-            <img
-              src={other.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
-              alt={name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            name?.charAt(0).toUpperCase()
-          )}
+        {/* Left Side Spacer: Provides dedicated container bounds for the floating back arrow on mobile layouts */}
+        <div className="w-8 sm:hidden block transition-all" aria-hidden="true" />
+
+        {/* Center Main Section: Info Meta Wrap */}
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 overflow-hidden cursor-pointer relative group transition-transform duration-200 active:scale-95 shadow-sm"
+            style={{ 
+              background: P.goldGlow, 
+              color: P.gold, 
+              border: `1px solid ${P.goldDim}` 
+            }}
+            onClick={() => !activeConversation?.isGroup && other?.avatarUrl && setViewerImageUrl(other.avatarUrl)}
+          >
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150" />
+            {!activeConversation?.isGroup && other?.avatarUrl ? (
+              <img
+                src={other.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
+                alt={name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-sm tracking-wider">{name?.charAt(0).toUpperCase()}</span>
+            )}
+          </div>
+
+          <div className="min-w-0 flex flex-col justify-center">
+            <h2 
+              className="font-semibold text-sm truncate tracking-wide leading-snug" 
+              style={{ color: P.text }}
+            >
+              {name}
+            </h2>
+            {typing ? (
+              <div className="text-xs flex items-center gap-1.5 leading-none mt-1" style={{ color: P.green }}>
+                <span className="cw-typing-dot inline-block w-1.5 h-1.5 rounded-full" style={{ background: P.green }} />
+                <span className="italic opacity-90">{typing.userName} is typing...</span>
+              </div>
+            ) : (
+              <p 
+                className="text-xs truncate font-medium mt-0.5 opacity-80" 
+                style={{ color: P.textMid }}
+              >
+                {activeConversation?.isGroup
+                  ? `${activeConversation.members?.length} members`
+                  : other?.email}
+              </p>
+            )}
+          </div>
         </div>
-        <div className="min-w-0 pl-0.5">
-          <p className="font-semibold text-sm truncate leading-[1.4]" style={{ color: P.text }}>{name}</p>
-          {typing ? (
-            <p className="text-xs flex items-center gap-1.5 leading-[1.4] mt-1" style={{ color: P.green }}>
-              <span className="cw-typing-dot inline-block w-[5px] h-[5px] rounded-full" style={{ background: P.green }} />
-              {typing.userName} is typing...
-            </p>
-          ) : (
-            <p className="text-xs truncate leading-[1.4] mt-1" style={{ color: P.textMid }}>
-              {activeConversation?.isGroup
-                ? `${activeConversation.members?.length} members`
-                : other?.email}
-            </p>
-          )}
-        </div>
+
+        {/* Right Side Slot: Ready for utility icons if necessary */}
+        <div className="flex items-center gap-2 justify-self-end"></div>
       </div>
 
       {/* Pending banner */}
@@ -270,26 +297,26 @@ export default function ChatWindow() {
           </div>
         ) : (
           <div
-            className="px-5 py-3 shrink-0 flex items-center justify-between gap-4"
+            className="px-4 sm:px-5 py-3 shrink-0 flex items-center justify-between gap-4"
             style={{ background: 'rgba(245,200,66,0.06)', borderBottom: `1px solid rgba(245,200,66,0.15)` }}
           >
-            <p className="text-[12px] font-medium" style={{ color: P.textMid }}>
-              💬 <strong style={{ color: P.text }}>{other?.name}</strong> wants to connect with you
+            <p className="text-[12px] font-medium truncate" style={{ color: P.textMid }}>
+              💬 <strong style={{ color: P.text }}>{other?.name}</strong> wants to connect
             </p>
             <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={handleDecline}
-                className="text-[11px] font-semibold px-3 py-1.5 rounded-lg transition"
+                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition"
                 style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.25)' }}
               >
                 Decline
               </button>
               <button
                 onClick={handleAccept}
-                className="text-[11px] font-bold px-3 py-1.5 rounded-lg transition hover:opacity-90"
+                className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg transition hover:opacity-90"
                 style={{ background: P.gold, color: '#0d0d0d' }}
               >
-                Accept & Chat ✓
+                Accept
               </button>
             </div>
           </div>
