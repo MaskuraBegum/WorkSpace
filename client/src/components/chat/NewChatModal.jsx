@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -27,6 +27,29 @@ export default function NewChatModal({ onClose }) {
     setConversations,
     conversations,
   } = useChatStore();
+
+  // 📱 MOBILE HARDWARE BACK BUTTON INTERCEPTOR
+  useEffect(() => {
+    // 1. Push a temporary dummy step onto the stack to act as a buffer target
+    window.history.pushState({ modalOpen: true }, "");
+
+    const handleHardwareBackClick = (event) => {
+      // The popstate indicates a back click happened on mobile.
+      // Instead of letting the browser change paths, gracefully fire our app layout cleanup
+      onClose();
+    };
+
+    // Listen for the back event
+    window.addEventListener("popstate", handleHardwareBackClick);
+
+    return () => {
+      window.removeEventListener("popstate", handleHardwareBackClick);
+      // Clean up the dummy state step if the user closed the modal via standard UI clicks
+      if (window.history.state?.modalOpen) {
+        window.history.back();
+      }
+    };
+  }, [onClose]);
 
   const handleSearch = async (e) => {
     const val = e.target.value;

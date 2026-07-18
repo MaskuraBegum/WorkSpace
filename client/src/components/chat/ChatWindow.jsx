@@ -39,6 +39,29 @@ export default function ChatWindow() {
     activeConversation?.createdBy?._id === user._id;
   const isPending = activeConversation?.status === 'pending';
 
+  // 📱 MOBILE HARDWARE BACK BUTTON INTERCEPTOR
+  useEffect(() => {
+    if (!activeConversation?._id) return;
+
+    // 1. Push a temporary dummy step onto the history stack to catch the back event
+    window.history.pushState({ chatWindowOpen: true }, '');
+
+    const handleHardwareBackClick = (event) => {
+      // Clear out the active conversation global state to switch mobile view panels safely
+      useChatStore.setState({ activeConversation: null });
+    };
+
+    window.addEventListener('popstate', handleHardwareBackClick);
+
+    return () => {
+      window.removeEventListener('popstate', handleHardwareBackClick);
+      // Clean up the dummy state step quietly if the user navigates away using on-screen buttons
+      if (window.history.state?.chatWindowOpen) {
+        window.history.back();
+      }
+    };
+  }, [activeConversation?._id]);
+
   useEffect(() => {
     if (!activeConversation) return;
     const socket = getSocket();
@@ -229,7 +252,12 @@ export default function ChatWindow() {
           backdropFilter: 'blur(8px)'
         }}
       >
-        <div className="w-8 sm:hidden block transition-all" aria-hidden="true" />
+        <div 
+          className="w-8 sm:hidden flex items-center justify-center cursor-pointer text-zinc-400 hover:text-white"
+          onClick={() => useChatStore.setState({ activeConversation: null })}
+        >
+          <X size={20} />
+        </div>
 
         <div className="flex items-center gap-3.5 min-w-0">
           <div
@@ -319,7 +347,7 @@ export default function ChatWindow() {
         )
       )}
 
-      {/* Messages View Area - Core Fix for Content Sizing and Scrollbar track cleanup */}
+      {/* Messages View Area */}
       <div
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-6 px-6 py-5"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
