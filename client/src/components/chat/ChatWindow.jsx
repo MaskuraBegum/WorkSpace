@@ -13,7 +13,9 @@ export default function ChatWindow() {
   const [input, setInput] = useState('');
   const [replyTo, setReplyTo] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [viewerImageUrl, setViewerImageUrl] = useState(null); // Standard Image Viewer State
+  const [viewerImageUrl, setViewerImageUrl] = useState(null);
+  const [activeActionMenuId, setActiveActionMenuId] = useState(null); // Managed single active menu state
+  
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
@@ -93,7 +95,6 @@ export default function ChatWindow() {
   const handleSend = () => {
     if (!input.trim()) return;
 
-    // Block reply in pending conversations for non-creator
     if (isPending && !isCreator) {
       toast.error('Accept the request first to reply');
       return;
@@ -174,6 +175,7 @@ export default function ChatWindow() {
         task: data,
         isNew: true
       });
+      setActiveActionMenuId(null);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to convert to task');
     }
@@ -188,6 +190,7 @@ export default function ChatWindow() {
         conversationId: activeConversation._id
       });
       toast.success('Message deleted');
+      setActiveActionMenuId(null);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to delete message');
     }
@@ -293,16 +296,19 @@ export default function ChatWindow() {
         )
       )}
 
-      {/* Messages */}
+      {/* Messages View Area */}
       <div
         className="flex-1 overflow-y-auto overflow-x-hidden space-y-6 px-6 py-5"
         style={{ scrollbarWidth: 'thin', scrollbarColor: `${P.goldDim} ${P.surface}` }}
+        onClick={() => setActiveActionMenuId(null)} // Dismiss actions clicking empty window space
       >
         {messages.map(msg => (
           <MessageBubble
             key={msg._id}
             message={msg}
             isOwn={msg.sender?._id === user._id}
+            menuIsOpen={activeActionMenuId === msg._id}
+            onToggleMenu={(isOpen) => setActiveActionMenuId(isOpen ? msg._id : null)}
             onReply={() => setReplyTo(msg)}
             onConvertToTask={handleConvertToTask}
             onDelete={handleDeleteMessage}
@@ -329,7 +335,7 @@ export default function ChatWindow() {
         </div>
       )}
 
-      {/* Input — disabled for pending non-creator */}
+      {/* Input section */}
       <div className="px-6 py-5 shrink-0" style={{ background: P.card, borderTop: `1px solid ${P.border}` }}>
         <input
           type="file"
@@ -389,12 +395,10 @@ export default function ChatWindow() {
         )}
       </div>
 
-      {/* Standard Size Image Viewer Modal */}
+      {/* Image Modal Viewer */}
       {viewerImageUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-[cw-fadeUp_0.15s_ease]">
           <div className="w-full max-w-md mx-4 bg-zinc-900 rounded-2xl border border-zinc-800 flex flex-col overflow-hidden shadow-2xl">
-            
-            {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800 bg-zinc-950/50">
               <span className="text-zinc-300 font-semibold text-sm">Image Preview</span>
               <button
@@ -404,8 +408,6 @@ export default function ChatWindow() {
                 <X size={16} />
               </button>
             </div>
-
-            {/* Modal Body with Standard Size Image */}
             <div className="p-5 flex items-center justify-center bg-zinc-900">
               <img
                 src={viewerImageUrl.replace('/upload/', '/upload/q_100,f_auto/')}
@@ -420,20 +422,27 @@ export default function ChatWindow() {
   );
 }
 
-function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isTemp, onViewImage }) {
-  const [showActions, setShowActions] = useState(false);
+function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onConvertToTask, onDelete, isTemp, onViewImage }) {
   const [converting, setConverting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const handleConvert = async () => {
+  const handleBubbleClick = (e) => {
+    e.stopPropagation();
+    if (isTemp) return;
+    onToggleMenu(!menuIsOpen);
+  };
+
+  const handleConvert = async (e) => {
+    e.stopPropagation();
     if (converting) return;
     setConverting(true);
     await onConvertToTask(message);
     setConverting(false);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (e) => {
+    e.stopPropagation();
     if (deleting) return;
     setDeleting(true);
     await onDelete(message);
@@ -454,11 +463,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
   const actionBtnClass = 'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 hover:bg-[rgba(245,200,66,0.12)] disabled:opacity-40';
 
   return (
-    <div
-      className={`flex animate-[cw-fadeUp_0.2s_ease] ${isOwn ? 'justify-end pr-2.5' : 'justify-start pl-2.5'}`}
-      onMouseEnter={() => !isTemp && setShowActions(true)}
-      onMouseLeave={() => { setShowActions(false); setShowDeleteConfirm(false); }}
-    >
+    <div className={`flex animate-[cw-fadeUp_0.2s_ease] ${isOwn ? 'justify-end pr-2.5' : 'justify-start pl-2.5'}`}>
       <div className={`max-w-sm lg:max-w-lg ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1.5`}>
 
         {message.replyTo && (
@@ -473,9 +478,9 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
         <div className="flex items-end gap-3.5 relative">
           {!isOwn && (
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden cursor-pointer hover:opacity-90 transition"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 overflow-hidden cursor-pointer hover:opacity-90 transition mb-1"
               style={{ background: P.goldGlow, color: P.gold, border: `1px solid ${P.goldDim}` }}
-              onClick={() => message.sender?.avatarUrl && onViewImage(message.sender.avatarUrl)}
+              onClick={(e) => { e.stopPropagation(); message.sender?.avatarUrl && onViewImage(message.sender.avatarUrl); }}
             >
               {message.sender?.avatarUrl ? (
                 <img
@@ -489,68 +494,10 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
             </div>
           )}
 
-          {/* Own message actions — hidden for temp messages */}
-          {showActions && isOwn && !isTemp && (
-            <div className="flex items-center gap-1.5 absolute -bottom-11 right-0 sm:bottom-0 sm:right-full sm:top-auto sm:mr-3 z-10">
-              {showDeleteConfirm ? (
-                <div
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap"
-                  style={{ background: P.card, border: `1px solid rgba(248,113,113,0.3)` }}
-                >
-                  <span style={{ color: '#f87171' }}>Delete?</span>
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="px-2 py-0.5 rounded-lg text-xs font-bold"
-                    style={{ background: 'rgba(248,113,113,0.2)', color: '#f87171' }}
-                  >
-                    {deleting ? '...' : 'Yes'}
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="px-2 py-0.5 rounded-lg text-xs font-bold"
-                    style={{ background: P.surface, color: P.textMid }}
-                  >
-                    No
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <button
-                    onClick={() => onReply(message)}
-                    className={actionBtnClass}
-                    style={{ background: P.card, border: `1.5px solid ${P.borderHover}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-                    title="Reply"
-                  >
-                    <CornerUpLeft size={15} style={{ color: P.text }} />
-                  </button>
-                  {message.content && (
-                    <button
-                      onClick={handleConvert}
-                      disabled={converting}
-                      className={actionBtnClass}
-                      style={{ background: P.card, border: `1.5px solid ${P.borderHover}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-                      title="Convert to task"
-                    >
-                      <CheckSquare size={15} style={{ color: P.text }} />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className={actionBtnClass}
-                    style={{ background: P.card, border: `1.5px solid rgba(248,113,113,0.3)`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-                    title="Delete message"
-                  >
-                    <Trash2 size={15} style={{ color: '#f87171' }} />
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Message content */}
+          {/* Message Core Container */}
           <div
-            className="rounded-2xl text-sm overflow-hidden"
+            onClick={handleBubbleClick}
+            className={`rounded-2xl text-sm overflow-hidden select-none transition-transform duration-100 ${!isTemp ? 'cursor-pointer active:scale-[0.99]' : ''}`}
             style={{
               background: isOwn ? P.gold : P.card,
               color: isOwn ? '#0d0d0d' : P.text,
@@ -561,7 +508,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
             }}
           >
             {isImage && (
-              <div onClick={() => onViewImage(message.file.url)} className="cursor-pointer">
+              <div onClick={(e) => { e.stopPropagation(); onViewImage(message.file.url); }} className="cursor-pointer">
                 <img
                   src={message.file.url}
                   alt={message.file.name}
@@ -574,6 +521,7 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
               <a href={message.file.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="flex items-center gap-3 transition px-4 py-3.5 hover:opacity-85"
               >
                 <div
@@ -602,34 +550,73 @@ function MessageBubble({ message, isOwn, onReply, onConvertToTask, onDelete, isT
               </p>
             )}
           </div>
-
-          {/* Other user actions — hidden for temp */}
-          {showActions && !isOwn && !isTemp && (
-            <div className="flex items-center gap-1.5 absolute -bottom-11 left-0 sm:bottom-0 sm:left-full sm:top-auto sm:mr-3 z-10">
-              <button
-                onClick={() => onReply(message)}
-                className={actionBtnClass}
-                style={{ background: P.card, border: `1.5px solid ${P.borderHover}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-                title="Reply"
-              >
-                <CornerUpLeft size={15} style={{ color: P.text }} />
-              </button>
-              {message.content && (
-                <button
-                  onClick={handleConvert}
-                  disabled={converting}
-                  className={actionBtnClass}
-                  style={{ background: P.card, border: `1.5px solid ${P.borderHover}`, boxShadow: '0 2px 8px rgba(0,0,0,0.3)' }}
-                  title="Convert to task"
-                >
-                  <CheckSquare size={15} style={{ color: P.text }} />
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
-        <p className="text-xs px-1 mt-1" style={{ color: P.textDim }}>
+        {/* INLINE ACTIONS PANEL: Mounted below the bubble, above the timestamp */}
+        {menuIsOpen && !isTemp && (
+          <div 
+            className={`flex items-center gap-1.5 py-1 mt-0.5 w-full animate-in fade-in slide-in-from-top-2 duration-150 ${isOwn ? 'justify-end' : 'justify-start'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {showDeleteConfirm && isOwn ? (
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap"
+                style={{ background: P.card, border: `1px solid rgba(248,113,113,0.3)` }}
+              >
+                <span style={{ color: '#f87171' }}>Delete?</span>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="px-2 py-0.5 rounded-lg text-xs font-bold bg-red-500/20 text-red-400"
+                >
+                  {deleting ? '...' : 'Yes'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-2 py-0.5 rounded-lg text-xs font-bold"
+                  style={{ background: P.surface, color: P.textMid }}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onReply(message); onToggleMenu(false); }}
+                  className={actionBtnClass}
+                  style={{ background: P.card, border: `1px solid ${P.border}`, boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}
+                  title="Reply"
+                >
+                  <CornerUpLeft size={14} style={{ color: P.text }} />
+                </button>
+                {message.content && (
+                  <button
+                    onClick={handleConvert}
+                    disabled={converting}
+                    className={actionBtnClass}
+                    style={{ background: P.card, border: `1px solid ${P.border}`, boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}
+                    title="Convert to task"
+                  >
+                    <CheckSquare size={14} style={{ color: P.text }} />
+                  </button>
+                )}
+                {isOwn && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                    className={actionBtnClass}
+                    style={{ background: P.card, border: `1px solid rgba(248,113,113,0.3)`, boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}
+                    title="Delete message"
+                  >
+                    <Trash2 size={14} style={{ color: '#f87171' }} />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Timestamp — Flowed down safely beneath bubble or panel */}
+        <p className="text-xs px-1 mt-0.5 select-none" style={{ color: P.textDim }}>
           {isTemp
             ? <span style={{ opacity: 0.5 }}>Sending...</span>
             : message.createdAt
