@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Zap, Mail, ArrowLeft, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
+import { Zap, Mail, ArrowLeft, RefreshCw, AlertCircle, CheckCircle, HelpCircle } from 'lucide-react';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
@@ -16,6 +16,7 @@ const P = {
   text: '#f0ead6',
   textMid: '#8a7d5e',
   textDim: '#4a4030',
+  error: '#f87171',
 };
 
 export default function VerifyOTPPage() {
@@ -117,7 +118,7 @@ export default function VerifyOTPPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: P.bg }}>
+    <div className="min-h-screen flex items-center justify-center p-4 animate-in fade-in duration-200" style={{ background: P.bg }}>
       <div className="w-full max-w-md">
 
         {/* Logo */}
@@ -158,7 +159,7 @@ export default function VerifyOTPPage() {
               {/* Icon */}
               <div className="flex justify-center mb-5">
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(245,200,66,0.1)', border: `1px solid rgba(245,200,66,0.2)` }}>
+                  style={{ background: 'rgba(245,200,66,0.06)', border: `1px solid rgba(245,200,66,0.15)` }}>
                   <Mail size={26} style={{ color: P.gold }} />
                 </div>
               </div>
@@ -167,40 +168,48 @@ export default function VerifyOTPPage() {
                 Check your email
               </h1>
 
-              {/* Email display - Always Unmasked */}
-              <div className="text-center mb-2">
+              {/* Email display + Inline Change Action */}
+              <div className="text-center mb-5 flex flex-col items-center">
                 <p className="text-sm" style={{ color: P.textMid }}>
                   We sent a 6-digit code to
                 </p>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <p className="font-bold text-sm" style={{ color: P.gold }}>
-                    {email}
-                  </p>
+                <div 
+                  className="mt-2 px-3 py-1 rounded-xl flex items-center gap-2 border text-xs font-semibold max-w-full"
+                  style={{ background: 'rgba(255,255,255,0.02)', borderColor: P.border }}
+                >
+                  <span className="truncate" style={{ color: P.gold }}>{email}</span>
+                  <span style={{ color: P.textDim }}>|</span>
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="underline tracking-wide transition shrink-0 hover:opacity-80"
+                    style={{ color: P.textMid }}
+                  >
+                    Change
+                  </button>
                 </div>
               </div>
 
-              {/* Wrong email box */}
+              {/* CRITICAL ATTENTION: SPAM WARNING BANNER (Center Aligned) */}
               <div
-                className="flex  item-center gap-2.5 mb-5 px-3.5 py-3 rounded-xl justify-center "
-                style={{ background: 'rgba(245,200,66,0.05)', border: `1px solid rgba(245,200,66,0.15)` }}
+                className="flex flex-col items-center justify-center text-center gap-2 mb-6 px-4 py-3.5 rounded-xl border animate-pulse"
+                style={{ 
+                  background: 'rgba(245,200,66,0.08)', 
+                  borderColor: 'rgba(245,200,66,0.3)',
+                  boxShadow: '0 2px 12px rgba(245,200,66,0.04)'
+                }}
               >
-                <AlertCircle size={14} style={{ color: P.goldDim, flexShrink: 0, marginTop: '1px' }} />
-                <div className='items-center'>
-                  <p className="text-[12px] font-medium leading-relaxed" style={{ color: P.textMid }}>
-                    Wrong email address?{' '}
-                    <button
-                      onClick={() => navigate('/register')}
-                      className="font-bold underline"
-                      style={{ color: P.gold }}
-                    >
-                      Go back and correct it
-                    </button>
-                  </p>
+                <div className='flex items-center justify-center gap-2'>
+                  <div className="text-lg leading-none">⚠️</div>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider mb-0.5" style={{ color: P.gold }}>
+                      Don't forget to Check your Spam Folder!
+                    </h4>
+                  </div>
                 </div>
               </div>
 
               {/* OTP inputs */}
-              <div className="flex gap-2 justify-center mb-5" onPaste={handlePaste}>
+              <div className="flex gap-2 justify-center mb-6" onPaste={handlePaste}>
                 {otp.map((digit, i) => (
                   <input
                     key={i}
@@ -211,7 +220,7 @@ export default function VerifyOTPPage() {
                     value={digit}
                     onChange={e => handleChange(i, e.target.value)}
                     onKeyDown={e => handleKeyDown(i, e)}
-                    className="text-center font-black outline-none transition-all duration-150"
+                    className="text-center font-black outline-none transition-all duration-150 focus:scale-105"
                     style={{
                       width: '46px', height: '54px',
                       background: P.surface,
@@ -230,16 +239,24 @@ export default function VerifyOTPPage() {
               {/* Multiple attempts warning */}
               {attempts >= 2 && (
                 <div
-                  className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-xl"
-                  style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}
+                  className="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-xl animate-bounce"
+                  style={{ background: 'rgba(248,113,113,0.08)', border: `1px solid rgba(248,113,113,0.2)` }}
                 >
-                  <AlertCircle size={13} color="#f87171" style={{ flexShrink: 0, marginTop: '1px' }} />
-                  <p className="text-[11px] leading-relaxed" style={{ color: '#f87171' }}>
-                    Multiple failed attempts. Make sure you entered the latest code.
-                    {canResend
-                      ? ' Try resending a fresh code below.'
-                      : ` Request a new code in ${countdown}s.`}
+                  <AlertCircle size={13} style={{ color: P.error, flexShrink: 0, marginTop: '2px' }} />
+                  <p className="text-[11px] leading-relaxed" style={{ color: P.error }}>
+                    Multiple failed attempts. Check your <strong className="underline">Spam folder</strong> for the most recent email verification code.
                   </p>
+                </div>
+              )}
+
+              {/* Delayed Reminder Banner (Shows up after 15 seconds have elapsed) */}
+              {countdown < 45 && !canResend && (
+                <div 
+                  className="mb-5 px-3 py-2.5 rounded-xl border text-center text-[11px] font-semibold flex items-center gap-2 justify-center transition-all duration-300 animate-in slide-in-from-top-2"
+                  style={{ background: P.surface, borderColor: P.border, color: P.text }}
+                >
+                  <HelpCircle size={13} style={{ color: P.gold }} />
+                  <span>Still waiting? Refresh your <strong>Spam / Junk</strong> tabs!</span>
                 </div>
               )}
 
@@ -247,7 +264,7 @@ export default function VerifyOTPPage() {
               <button
                 onClick={() => handleVerify()}
                 disabled={loading || otp.some(d => !d)}
-                className="w-full font-bold py-3 rounded-xl text-sm transition mb-5 disabled:opacity-40 hover:scale-[1.01] active:scale-95"
+                className="w-full font-bold py-3 rounded-xl text-sm transition mb-6 disabled:opacity-40 hover:scale-[1.01] active:scale-95"
                 style={{
                   background: `linear-gradient(135deg, ${P.gold}, ${P.goldDim})`,
                   color: '#0d0d0d',
@@ -262,56 +279,48 @@ export default function VerifyOTPPage() {
                 ) : 'Verify & Create Account →'}
               </button>
 
-              {/* Resend + hints */}
-              <div className="space-y-2.5 text-center">
-                {canResend ? (
-                  <button
-                    onClick={handleResend}
-                    disabled={resending}
-                    className="flex items-center justify-center gap-2 mx-auto text-sm font-semibold transition"
-                    style={{ color: P.gold }}
-                  >
-                    <RefreshCw size={13} className={resending ? 'animate-spin' : ''} />
-                    {resending ? 'Sending new code...' : 'Resend code'}
-                  </button>
-                ) : (
-                  <p className="text-sm text-amber-300" >
-                    Resend code in{' '}
-                    <span className="font-bold" style={{ color: P.gold }}>{countdown}s</span>
-                  </p>
-                )}
-
-                {/* Spam hint - Enhanced Visibility */}
-                <div
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg mx-auto max-w-xs"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${P.border}` }}
-                >
-                  <span className="text-base">📬</span>
-                  <p className="text-[11px] text-white text-left">
-                    Not in inbox?{' '}
-                    <span style={{ color: P.text }}>Check your spam or junk folder</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Back */}
-              <div className="flex justify-center mt-5">
+              {/* Consolidated Side-by-Side Navigation & Resend Footer */}
+              <div 
+                className="flex items-center justify-between mt-2 pt-4 border-t text-xs font-semibold" 
+                style={{ borderColor: 'rgba(255,255,255,0.04)' }}
+              >
+                {/* Left Side: Back action */}
                 <button
                   onClick={() => navigate('/register')}
-                  className="flex text-amber-200 items-center gap-1.5 text-xs transition"
-                  onMouseEnter={e => e.currentTarget.style.color = P.goldDim}
-                  onMouseLeave={e => e.currentTarget.style.color = P.gold}
+                  className="flex items-center gap-1.5 transition text-xs"
+                  style={{ color: P.textMid }}
+                  onMouseEnter={e => e.currentTarget.style.color = P.gold}
+                  onMouseLeave={e => e.currentTarget.style.color = P.textMid}
                 >
                   <ArrowLeft size={12} /> Back to register
                 </button>
+
+                {/* Right Side: Resend workflow */}
+                <div>
+                  {canResend ? (
+                    <button
+                      onClick={handleResend}
+                      disabled={resending}
+                      className="flex items-center gap-1.5 transition text-xs"
+                      style={{ color: P.gold }}
+                    >
+                      <RefreshCw size={12} className={resending ? 'animate-spin' : ''} />
+                      {resending ? 'Sending...' : 'Resend code'}
+                    </button>
+                  ) : (
+                    <p style={{ color: P.textMid }} className="text-xs">
+                      Resend in <span className="font-bold" style={{ color: P.gold }}>{countdown}s</span>
+                    </p>
+                  )}
+                </div>
               </div>
             </>
           )}
         </div>
 
-        {/* Security note */}
-        <p className="text-center text-amber-100 text-[11px] mt-4">
-          🔒 Your account is only created after email verification
+        {/* Security status text */}
+        <p className="text-center text-[11px] mt-4" style={{ color: P.textDim }}>
+          🔒 Secure encryption verified. Account creation will complete following email validation.
         </p>
       </div>
     </div>
