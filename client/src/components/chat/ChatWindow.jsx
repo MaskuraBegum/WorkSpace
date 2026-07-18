@@ -14,7 +14,7 @@ export default function ChatWindow() {
   const [replyTo, setReplyTo] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [viewerImageUrl, setViewerImageUrl] = useState(null);
-  const [activeActionMenuId, setActiveActionMenuId] = useState(null); // Managed single active menu state
+  const [activeActionMenuId, setActiveActionMenuId] = useState(null);
   
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
@@ -220,7 +220,7 @@ export default function ChatWindow() {
         .cw-typing-dot { animation: cw-pulse 1.2s ease infinite; }
       `}</style>
 
-      {/* Header — Professional Grid Layout & Responsive Arrow Slot */}
+      {/* Header */}
       <div
         className="grid grid-cols-[auto_1fr_auto] items-center gap-4 shrink-0 py-4 px-4 sm:px-6 md:px-7 z-10 transition-all duration-200"
         style={{ 
@@ -229,10 +229,8 @@ export default function ChatWindow() {
           backdropFilter: 'blur(8px)'
         }}
       >
-        {/* Left Side Spacer: Provides dedicated container bounds for the floating back arrow on mobile layouts */}
         <div className="w-8 sm:hidden block transition-all" aria-hidden="true" />
 
-        {/* Center Main Section: Info Meta Wrap */}
         <div className="flex items-center gap-3.5 min-w-0">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 overflow-hidden cursor-pointer relative group transition-transform duration-200 active:scale-95 shadow-sm"
@@ -279,12 +277,10 @@ export default function ChatWindow() {
             )}
           </div>
         </div>
-
-        {/* Right Side Slot: Ready for utility icons if necessary */}
         <div className="flex items-center gap-2 justify-self-end"></div>
       </div>
 
-      {/* Pending banner */}
+      {/* Pending Banner */}
       {isPending && (
         isCreator ? (
           <div
@@ -323,11 +319,11 @@ export default function ChatWindow() {
         )
       )}
 
-      {/* Messages View Area */}
+      {/* Messages View Area - Core Fix for Content Sizing and Scrollbar track cleanup */}
       <div
-        className="flex-1 overflow-y-auto overflow-x-hidden space-y-6 px-6 py-5"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: `${P.goldDim} ${P.surface}` }}
-        onClick={() => setActiveActionMenuId(null)} // Dismiss actions clicking empty window space
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-6 px-6 py-5"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        onClick={() => setActiveActionMenuId(null)}
       >
         {messages.map(msg => (
           <MessageBubble
@@ -343,10 +339,10 @@ export default function ChatWindow() {
             onViewImage={setViewerImageUrl}
           />
         ))}
-        <div ref={bottomRef} />
+        <div ref={bottomRef} className="h-2 shrink-0" />
       </div>
 
-      {/* Reply preview */}
+      {/* Reply Preview */}
       {replyTo && (
         <div
           className="mx-6 mt-1 px-4 py-2.5 flex items-center justify-between rounded-t-xl shrink-0"
@@ -362,8 +358,8 @@ export default function ChatWindow() {
         </div>
       )}
 
-      {/* Input section */}
-      <div className="px-6 py-5 shrink-0" style={{ background: P.card, borderTop: `1px solid ${P.border}` }}>
+      {/* Input Section */}
+      <div className="px-6 py-5 shrink-0 z-10" style={{ background: P.card, borderTop: `1px solid ${P.border}` }}>
         <input
           type="file"
           ref={fileInputRef}
@@ -521,7 +517,6 @@ function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onCo
             </div>
           )}
 
-          {/* Message Core Container */}
           <div
             onClick={handleBubbleClick}
             className={`rounded-2xl text-sm overflow-hidden select-none transition-transform duration-100 ${!isTemp ? 'cursor-pointer active:scale-[0.99]' : ''}`}
@@ -579,7 +574,6 @@ function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onCo
           </div>
         </div>
 
-        {/* INLINE ACTIONS PANEL: Mounted below the bubble, above the timestamp */}
         {menuIsOpen && !isTemp && (
           <div 
             className={`flex items-center gap-1.5 py-1 mt-0.5 w-full animate-in fade-in slide-in-from-top-2 duration-150 ${isOwn ? 'justify-end' : 'justify-start'}`}
@@ -642,7 +636,6 @@ function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onCo
           </div>
         )}
 
-        {/* Timestamp — Flowed down safely beneath bubble or panel */}
         <p className="text-xs px-1 mt-0.5 select-none" style={{ color: P.textDim }}>
           {isTemp
             ? <span style={{ opacity: 0.5 }}>Sending...</span>

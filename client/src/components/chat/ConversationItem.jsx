@@ -24,7 +24,6 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   const [accepting, setAccepting] = useState(false);
   const [declining, setDeclining] = useState(false);
 
-  // Mobile long-press timer reference
   const longPressTimer = useRef(null);
 
   const other = conversation.members?.find(m => m._id !== user._id);
@@ -40,13 +39,12 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   const isCreator = conversation.createdBy === user._id || conversation.createdBy?._id === user._id;
   const needsAcceptance = isPending && !isCreator;
 
-  // Mobile Touch Handlers (Long Press triggers the initial Trash Can button visibility)
-  const handleTouchStart = (e) => {
+  const handleTouchStart = () => {
     if (needsAcceptance || confirmDelete) return;
     
     longPressTimer.current = setTimeout(() => {
       if (navigator.vibrate) navigator.vibrate(50);
-      setShowDelete(true); // Reveals the trash can action slot
+      setShowDelete(true);
     }, 600);
   };
 
@@ -69,7 +67,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   const handleCancelDelete = (e) => {
     e.stopPropagation();
     setConfirmDelete(false);
-    setShowDelete(false); // Reset fully on mobile cancel
+    setShowDelete(false);
   };
 
   const handleDelete = async (e) => {
@@ -120,7 +118,6 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   };
 
   const handleItemClick = (e) => {
-    // Prevent navigating into the chat if active delete/actions options are visible
     if (needsAcceptance || confirmDelete || showDelete) return;
     if (isActive) return;
 
@@ -134,7 +131,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
       onClick={handleItemClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      onTouchMove={handleTouchEnd} // Cancel long press if scrolling
+      onTouchMove={handleTouchEnd}
       className={`flex items-center gap-3 px-4 py-[11px] transition-colors duration-150 border-r-2 group relative select-none ${
         needsAcceptance || confirmDelete || showDelete ? 'cursor-default' : 'cursor-pointer'
       } ${
@@ -144,7 +141,6 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
       onMouseEnter={() => setShowDelete(true)}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Avatar Container */}
       <div className="relative shrink-0 select-none pointer-events-none">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-bold transition-all duration-150 overflow-hidden"
@@ -176,7 +172,6 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
         )}
       </div>
 
-      {/* Info Container */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-1">
           <p
@@ -186,11 +181,8 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
             {name}
           </p>
 
-          {/* Action / Meta Slot */}
           {!needsAcceptance && (
             <div className="flex items-center justify-end h-5 min-w-[50px] relative">
-              
-              {/* Timestamp */}
               <div className={`transition-opacity duration-150 ${
                 showDelete || confirmDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
               }`}>
@@ -201,7 +193,6 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
                 )}
               </div>
 
-              {/* Step 1: Delete Button (Reveals on Desktop Hover OR Mobile Long-Press) */}
               {!confirmDelete && (
                 <button
                   onClick={handleDeleteTrigger}
@@ -221,7 +212,6 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
                 </button>
               )}
 
-              {/* Step 2: Inline Yes/No Confirmation UI */}
               {confirmDelete && (
                 <div className="absolute right-0 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
                   <button
@@ -250,7 +240,6 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
           )}
         </div>
 
-        {/* Bottom Line */}
         {needsAcceptance ? (
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[11px] font-semibold text-red-400">Message request</span>
