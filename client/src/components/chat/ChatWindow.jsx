@@ -478,10 +478,51 @@ function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onCo
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const longPressTimer = useRef(null);
+  const isLongPress = useRef(false);
+
+  // --- Long Press Handlers for Mobile ---
+  const handleTouchStart = (e) => {
+    if (isTemp) return;
+    isLongPress.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      if (navigator.vibrate) navigator.vibrate(50);
+      onToggleMenu(true);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
+
+  const handleTouchMove = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
+
   const handleBubbleClick = (e) => {
     e.stopPropagation();
     if (isTemp) return;
+
+    if (isLongPress.current) {
+      isLongPress.current = false;
+      return;
+    }
+
     onToggleMenu(!menuIsOpen);
+  };
+
+  const handleImageClick = (e) => {
+    e.stopPropagation();
+    if (isLongPress.current) {
+      isLongPress.current = false;
+      return;
+    }
+    onViewImage(message.file.url);
   };
 
   const handleConvert = async (e) => {
@@ -514,7 +555,7 @@ function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onCo
   const actionBtnClass = 'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-150 hover:bg-[rgba(245,200,66,0.12)] disabled:opacity-40';
 
   return (
-    <div className={`flex animate-[cw-fadeUp_0.2s_ease] ${isOwn ? 'justify-end pr-2.5' : 'justify-start pl-2.5'}`}>
+    <div className={`group flex animate-[cw-fadeUp_0.2s_ease] ${isOwn ? 'justify-end pr-2.5' : 'justify-start pl-2.5'}`}>
       <div className={`max-w-sm lg:max-w-lg ${isOwn ? 'items-end' : 'items-start'} flex flex-col gap-1.5`}>
 
         {message.replyTo && (
@@ -547,6 +588,9 @@ function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onCo
 
           <div
             onClick={handleBubbleClick}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
             className={`rounded-2xl text-sm overflow-hidden select-none transition-transform duration-100 ${!isTemp ? 'cursor-pointer active:scale-[0.99]' : ''}`}
             style={{
               background: isOwn ? P.gold : P.card,
@@ -558,7 +602,7 @@ function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onCo
             }}
           >
             {isImage && (
-              <div onClick={(e) => { e.stopPropagation(); onViewImage(message.file.url); }} className="cursor-pointer">
+              <div onClick={handleImageClick} className="cursor-pointer">
                 <img
                   src={message.file.url}
                   alt={message.file.name}
@@ -602,9 +646,9 @@ function MessageBubble({ message, isOwn, menuIsOpen, onToggleMenu, onReply, onCo
           </div>
         </div>
 
-        {menuIsOpen && !isTemp && (
+        {!isTemp && (
           <div 
-            className={`flex items-center gap-1.5 py-1 mt-0.5 w-full animate-in fade-in slide-in-from-top-2 duration-150 ${isOwn ? 'justify-end' : 'justify-start'}`}
+            className={`items-center gap-1.5 py-1 mt-0.5 w-full animate-in fade-in slide-in-from-top-2 duration-150 ${isOwn ? 'justify-end' : 'justify-start'} ${menuIsOpen ? 'flex' : 'hidden sm:group-hover:flex'}`}
             onClick={(e) => e.stopPropagation()}
           >
             {showDeleteConfirm && isOwn ? (
