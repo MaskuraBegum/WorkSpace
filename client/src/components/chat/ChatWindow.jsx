@@ -19,6 +19,7 @@ export default function ChatWindow() {
   const bottomRef = useRef(null);
   const typingTimeout = useRef(null);
   const fileInputRef = useRef(null);
+  const hasPushedHistoryRef = useRef(false);
   const {
     activeConversation,
     messages,
@@ -40,27 +41,30 @@ export default function ChatWindow() {
   const isPending = activeConversation?.status === 'pending';
 
   // 📱 MOBILE HARDWARE BACK BUTTON INTERCEPTOR
+  // Push a single dummy history entry when a chat is first opened (activeConversation
+  // goes from null -> a value). Switching between two open conversations must NOT
+  // push/pop again, or the pop races with the click that opened the new chat and
+  // resets activeConversation back to null.
   useEffect(() => {
-    if (!activeConversation?._id) return;
+    if (activeConversation?._id) {
+      if (!hasPushedHistoryRef.current) {
+        window.history.pushState({ chatWindowOpen: true }, '');
+        hasPushedHistoryRef.current = true;
+      }
+    } else {
+      hasPushedHistoryRef.current = false;
+    }
+  }, [activeConversation?._id]);
 
-    // 1. Push a temporary dummy step onto the history stack to catch the back event
-    window.history.pushState({ chatWindowOpen: true }, '');
-
-    const handleHardwareBackClick = (event) => {
-      // Clear out the active conversation global state to switch mobile view panels safely
+  // Listener stays mounted for the lifetime of the component — it only needs to
+  // close the chat, never to know which conversation was open.
+  useEffect(() => {
+    const handleHardwareBackClick = () => {
       useChatStore.setState({ activeConversation: null });
     };
-
     window.addEventListener('popstate', handleHardwareBackClick);
-
-    return () => {
-      window.removeEventListener('popstate', handleHardwareBackClick);
-      // Clean up the dummy state step quietly if the user navigates away using on-screen buttons
-      if (window.history.state?.chatWindowOpen) {
-        window.history.back();
-      }
-    };
-  }, [activeConversation?._id]);
+    return () => window.removeEventListener('popstate', handleHardwareBackClick);
+  }, []);
 
   useEffect(() => {
     if (!activeConversation) return;
@@ -235,6 +239,16 @@ export default function ChatWindow() {
     } catch { toast.error('Failed to decline'); }
   };
 
+  const handleCloseChat = () => {
+    // If we own an un-consumed dummy history entry, pop it so the hardware
+    // back button doesn't require an extra press after closing manually.
+    if (hasPushedHistoryRef.current && window.history.state?.chatWindowOpen) {
+      window.history.back();
+    } else {
+      useChatStore.setState({ activeConversation: null });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full w-full relative overflow-hidden" style={{ background: P.surface }}>
       <style>{`
@@ -254,7 +268,7 @@ export default function ChatWindow() {
       >
         <div 
           className="w-8 sm:hidden flex items-center justify-center cursor-pointer text-zinc-400 hover:text-white"
-          onClick={() => useChatStore.setState({ activeConversation: null })}
+          onClick={handleCloseChat}
         >
           <X size={20} />
         </div>

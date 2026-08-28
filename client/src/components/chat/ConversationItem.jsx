@@ -118,12 +118,9 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   };
 
   const handleItemClick = (e) => {
-    if (needsAcceptance || confirmDelete || showDelete) return;
+    if (needsAcceptance || confirmDelete) return;
     if (isActive) return;
-
-    if (onClick) {
-      onClick(e);
-    }
+    if (onClick) onClick(e);
   };
 
   return (
@@ -138,7 +135,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
         isActive ? 'border-[#f5c842]' : 'border-transparent hover:bg-[rgba(245,200,66,0.06)]'
       }`}
       style={isActive ? { background: 'rgba(245,200,66,0.10)' } : undefined}
-      onMouseEnter={() => setShowDelete(true)}
+      onMouseEnter={() => { if (!confirmDelete) setShowDelete(true); }}
       onMouseLeave={handleMouseLeave}
     >
       <div className="relative shrink-0 select-none pointer-events-none">
