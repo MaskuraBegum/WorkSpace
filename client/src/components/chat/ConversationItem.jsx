@@ -18,30 +18,42 @@ const P = {
 export default function ConversationItem({ conversation, isActive, onClick }) {
   const { user } = useAuthStore();
   const { onlineUsers, removeConversation, updateConversation } = useChatStore();
+
   const [showDelete, setShowDelete] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false); 
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [declining, setDeclining] = useState(false);
 
   const longPressTimer = useRef(null);
+  const isTouchDevice = useRef(false);
 
   const other = conversation.members?.find(m => m._id !== user._id);
   const name = conversation.isGroup ? conversation.name : other?.name || 'Unknown';
   const initial = name?.charAt(0).toUpperCase();
   const isOnline = !conversation.isGroup && onlineUsers.includes(other?._id);
   const lastMsg = conversation.lastMessage?.content || 'No messages yet';
+
   const time = conversation.updatedAt
     ? formatDistanceToNow(new Date(conversation.updatedAt), { addSuffix: true })
     : '';
+
   const unreadCount = conversation.unreadCount || 0;
   const isPending = conversation.status === 'pending';
-  const isCreator = conversation.createdBy === user._id || conversation.createdBy?._id === user._id;
+  const isCreator =
+    conversation.createdBy === user._id ||
+    conversation.createdBy?._id === user._id;
+
   const needsAcceptance = isPending && !isCreator;
 
+  // =========================
+  // MOBILE / TABLET LONG PRESS
+  // =========================
   const handleTouchStart = () => {
     if (needsAcceptance || confirmDelete) return;
-    
+
+    isTouchDevice.current = true;
+
     longPressTimer.current = setTimeout(() => {
       if (navigator.vibrate) navigator.vibrate(50);
       setShowDelete(true);
@@ -51,10 +63,18 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
   const handleTouchEnd = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   };
 
+  // =========================
+  // DESKTOP MOUSE
+  // =========================
   const handleMouseLeave = () => {
+    // Prevent synthetic mouse events generated after
+    // touch interactions from hiding the delete button.
+    if (isTouchDevice.current) return;
+
     setShowDelete(false);
     setConfirmDelete(false);
   };
@@ -66,17 +86,27 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
 
   const handleCancelDelete = (e) => {
     e.stopPropagation();
+
     setConfirmDelete(false);
     setShowDelete(false);
+    isTouchDevice.current = false;
   };
 
+  // =========================
+  // DELETE CONVERSATION
+  // =========================
   const handleDelete = async (e) => {
     e.stopPropagation();
+
     if (deleting) return;
+
     setDeleting(true);
+
     try {
       await api.delete(`/conversations/${conversation._id}`);
+
       removeConversation(conversation._id);
+
       toast.success('Conversation deleted');
     } catch {
       toast.error('Failed to delete conversation');
@@ -84,16 +114,27 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
       setDeleting(false);
       setConfirmDelete(false);
       setShowDelete(false);
+      isTouchDevice.current = false;
     }
   };
 
+  // =========================
+  // ACCEPT REQUEST
+  // =========================
   const handleAccept = async (e) => {
     e.stopPropagation();
+
     if (accepting) return;
+
     setAccepting(true);
+
     try {
-      const { data } = await api.put(`/conversations/${conversation._id}/accept`);
+      const { data } = await api.put(
+        `/conversations/${conversation._id}/accept`
+      );
+
       updateConversation(data);
+
       toast.success('Request accepted!');
     } catch {
       toast.error('Failed to accept request');
@@ -102,13 +143,21 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
     }
   };
 
+  // =========================
+  // DECLINE REQUEST
+  // =========================
   const handleDecline = async (e) => {
     e.stopPropagation();
+
     if (declining) return;
+
     setDeclining(true);
+
     try {
       await api.put(`/conversations/${conversation._id}/decline`);
+
       removeConversation(conversation._id);
+
       toast.success('Request declined');
     } catch {
       toast.error('Failed to decline request');
@@ -117,9 +166,18 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
     }
   };
 
+  // =========================
+  // CONVERSATION CLICK
+  // =========================
   const handleItemClick = (e) => {
     if (needsAcceptance || confirmDelete) return;
     if (isActive) return;
+  
+    // Reset mobile/tablet delete state before opening the chat
+    setShowDelete(false);
+    setConfirmDelete(false);
+    isTouchDevice.current = false;
+  
     if (onClick) onClick(e);
   };
 
@@ -130,14 +188,27 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchEnd}
       className={`flex items-center gap-3 px-4 py-[11px] transition-colors duration-150 border-r-2 group relative select-none ${
-        needsAcceptance || confirmDelete || showDelete ? 'cursor-default' : 'cursor-pointer'
+        needsAcceptance || confirmDelete || showDelete
+          ? 'cursor-default'
+          : 'cursor-pointer'
       } ${
-        isActive ? 'border-[#f5c842]' : 'border-transparent hover:bg-[rgba(245,200,66,0.06)]'
+        isActive
+          ? 'border-[#f5c842]'
+          : 'border-transparent hover:bg-[rgba(245,200,66,0.06)]'
       }`}
-      style={isActive ? { background: 'rgba(245,200,66,0.10)' } : undefined}
-      onMouseEnter={() => { if (!confirmDelete) setShowDelete(true); }}
+      style={
+        isActive
+          ? { background: 'rgba(245,200,66,0.10)' }
+          : undefined
+      }
+      onMouseEnter={() => {
+        if (!isTouchDevice.current && !confirmDelete) {
+          setShowDelete(true);
+        }
+      }}
       onMouseLeave={handleMouseLeave}
     >
+      {/* Avatar */}
       <div className="relative shrink-0 select-none pointer-events-none">
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center text-[15px] font-bold transition-all duration-150 overflow-hidden"
@@ -147,13 +218,26 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
               : needsAcceptance
                 ? 'rgba(248,113,113,0.15)'
                 : 'rgba(245,200,66,0.16)',
-            border: `1px solid ${isActive ? P.gold : needsAcceptance ? 'rgba(248,113,113,0.4)' : 'rgba(245,200,66,0.3)'}`,
-            color: isActive ? '#0d0d0d' : needsAcceptance ? '#f87171' : P.gold,
+            border: `1px solid ${
+              isActive
+                ? P.gold
+                : needsAcceptance
+                  ? 'rgba(248,113,113,0.4)'
+                  : 'rgba(245,200,66,0.3)'
+            }`,
+            color: isActive
+              ? '#0d0d0d'
+              : needsAcceptance
+                ? '#f87171'
+                : P.gold,
           }}
         >
           {other?.avatarUrl ? (
             <img
-              src={other.avatarUrl.replace('/upload/', '/upload/q_100,f_auto/')}
+              src={other.avatarUrl.replace(
+                '/upload/',
+                '/upload/q_100,f_auto/'
+              )}
               alt={name}
               className="w-full h-full object-cover"
             />
@@ -161,14 +245,20 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
             initial
           )}
         </div>
+
         {isOnline && !needsAcceptance && (
           <div
             className="absolute bottom-[1px] right-[1px] w-2.5 h-2.5 rounded-full"
-            style={{ background: '#4ade80', border: '2px solid #111111', boxShadow: '0 0 5px rgba(74,222,128,0.7)' }}
+            style={{
+              background: '#4ade80',
+              border: '2px solid #111111',
+              boxShadow: '0 0 5px rgba(74,222,128,0.7)',
+            }}
           />
         )}
       </div>
 
+      {/* Conversation Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-1">
           <p
@@ -180,22 +270,31 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
 
           {!needsAcceptance && (
             <div className="flex items-center justify-end h-5 min-w-[50px] relative">
-              <div className={`transition-opacity duration-150 ${
-                showDelete || confirmDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}>
+              {/* Time */}
+              <div
+                className={`transition-opacity duration-150 ${
+                  showDelete || confirmDelete
+                    ? 'opacity-0 pointer-events-none'
+                    : 'opacity-100'
+                }`}
+              >
                 {time && (
-                  <span className="text-[11px] font-medium whitespace-nowrap" style={{ color: P.textDim }}>
+                  <span
+                    className="text-[11px] font-medium whitespace-nowrap"
+                    style={{ color: P.textDim }}
+                  >
                     {time}
                   </span>
                 )}
               </div>
 
+              {/* Delete Button */}
               {!confirmDelete && (
                 <button
                   onClick={handleDeleteTrigger}
                   className={`absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-md border transition-all duration-150 ${
-                    showDelete 
-                      ? 'opacity-100 scale-100 pointer-events-auto' 
+                    showDelete
+                      ? 'opacity-100 scale-100 pointer-events-auto'
                       : 'opacity-0 scale-90 pointer-events-none group-hover:md:opacity-100 group-hover:md:scale-100 group-hover:md:pointer-events-auto'
                   }`}
                   style={{
@@ -205,10 +304,14 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
                   }}
                   title="Delete conversation"
                 >
-                  <Trash2 size={12} className="hover:scale-110 transition-transform" />
+                  <Trash2
+                    size={12}
+                    className="hover:scale-110 transition-transform"
+                  />
                 </button>
               )}
 
+              {/* Delete Confirmation */}
               {confirmDelete && (
                 <div className="absolute right-0 flex items-center gap-1.5 animate-in fade-in zoom-in-95 duration-150">
                   <button
@@ -223,6 +326,7 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
                       <Check size={11} strokeWidth={3} />
                     )}
                   </button>
+
                   <button
                     onClick={handleCancelDelete}
                     disabled={deleting}
@@ -237,23 +341,36 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
           )}
         </div>
 
+        {/* Message Request */}
         {needsAcceptance ? (
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-[11px] font-semibold text-red-400">Message request</span>
+            <span className="text-[11px] font-semibold text-red-400">
+              Message request
+            </span>
+
             <button
               onClick={handleAccept}
               disabled={accepting}
               className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition"
-              style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}
+              style={{
+                background: 'rgba(74,222,128,0.15)',
+                color: '#4ade80',
+                border: '1px solid rgba(74,222,128,0.3)',
+              }}
             >
               <Check size={10} />
               {accepting ? '...' : 'Accept'}
             </button>
+
             <button
               onClick={handleDecline}
               disabled={declining}
               className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full transition"
-              style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+              style={{
+                background: 'rgba(248,113,113,0.15)',
+                color: '#f87171',
+                border: '1px solid rgba(248,113,113,0.3)',
+              }}
             >
               <X size={10} />
               {declining ? '...' : 'Decline'}
@@ -265,17 +382,24 @@ export default function ConversationItem({ conversation, isActive, onClick }) {
               className={`text-[12.5px] font-medium leading-[1.45] whitespace-nowrap overflow-hidden text-ellipsis flex-1 transition-opacity ${
                 confirmDelete ? 'opacity-30' : 'opacity-100'
               } ${unreadCount > 0 ? 'font-semibold' : ''}`}
-              style={{ color: unreadCount > 0 ? P.textMid : P.textDim }}
+              style={{
+                color: unreadCount > 0 ? P.textMid : P.textDim,
+              }}
             >
               {confirmDelete ? 'Delete this chat?' : lastMsg}
             </p>
 
             {unreadCount > 0 && (
-              <span 
+              <span
                 className={`text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 transition-opacity duration-150 ${
-                  showDelete || confirmDelete ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  showDelete || confirmDelete
+                    ? 'opacity-0 pointer-events-none'
+                    : 'opacity-100'
                 }`}
-                style={{ background: P.gold, color: '#0d0d0d' }}
+                style={{
+                  background: P.gold,
+                  color: '#0d0d0d',
+                }}
               >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
